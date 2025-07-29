@@ -4,7 +4,7 @@ const { conn } = require("../config/database");
 
 const inboxRoute = Router();
 
-inboxRoute.get('/check-inbox', async (req, res) => {
+inboxRoute.post('/check-inbox', async (req, res) => {
     const { email, website } = req.body;
 
     if (!email) {
@@ -60,7 +60,7 @@ inboxRoute.get('/check-inbox', async (req, res) => {
     }
 });
 
-inboxRoute.get('/specific-email', async (req, res) => {
+inboxRoute.post('/specific-email', async (req, res) => {
     const { email, id } = req.body;
 
     if (!email || !id) {

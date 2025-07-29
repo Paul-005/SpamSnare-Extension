@@ -4,7 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Spamsnare Console</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <style>
+      /* Base styles */
       * {
         margin: 0;
         padding: 0;
@@ -12,10 +17,12 @@
       }
 
       body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
         background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
         color: #ffffff;
         min-height: 100vh;
+        display: flex;
+        flex-direction: column; /* Allows content to expand and push footer-like elements down */
       }
 
       /* Navbar */
@@ -82,6 +89,7 @@
         max-width: 1200px;
         margin: 2rem auto;
         padding: 0 2rem;
+        flex-grow: 1; /* Allows content to expand and push footer down */
       }
 
       .page-title {
@@ -141,39 +149,6 @@
         color: #e0e0e0;
       }
 
-      /* Password Cell */
-      .password-cell {
-        position: relative;
-      }
-
-      .password-hidden {
-        color: #888;
-        font-family: monospace;
-        letter-spacing: 2px;
-      }
-
-      .password-visible {
-        color: #ffeb3b;
-        font-family: monospace;
-      }
-
-      .toggle-password {
-        background: none;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        color: #4a9eff;
-        padding: 0.3rem 0.6rem;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.8rem;
-        margin-left: 0.5rem;
-        transition: all 0.3s ease;
-      }
-
-      .toggle-password:hover {
-        background: rgba(74, 158, 255, 0.1);
-        border-color: #4a9eff;
-      }
-
       /* Responsive */
       @media (max-width: 768px) {
         .navbar {
@@ -191,7 +166,7 @@
         }
 
         table {
-          min-width: 600px;
+          min-width: 600px; /* Ensure table doesn't collapse too much */
         }
 
         th,
@@ -201,8 +176,9 @@
         }
       }
 
-      /* Empty state */
-      .empty-state {
+      /* Empty state & Loading state */
+      .empty-state,
+      .loading-state {
         text-align: center;
         padding: 3rem;
         color: #888;
@@ -212,6 +188,29 @@
         font-size: 3rem;
         margin-bottom: 1rem;
         opacity: 0.5;
+      }
+
+      .loading-spinner {
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top: 4px solid #4a9eff;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1rem auto; /* Center spinner and add margin below */
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .hidden {
+        display: none !important;
       }
     </style>
   </head>
@@ -223,7 +222,8 @@
         <span>Spamsnare</span>
       </div>
       <div class="user-section">
-        <span class="user-name">Welcome, John Doe</span>
+        <span class="user-name">Welcome, User</span>
+        <!-- User name can be dynamic -->
         <button class="logout-btn" onclick="logout()">Logout</button>
       </div>
     </nav>
@@ -238,106 +238,102 @@
             <tr>
               <th>Website</th>
               <th>Email</th>
-              <th>Password</th>
             </tr>
           </thead>
           <tbody id="tableBody">
             <!-- Data will be populated by JavaScript -->
           </tbody>
         </table>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-state hidden">
+          <div class="loading-spinner"></div>
+          <p class="text-lg">Loading data...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state hidden">
+          <div class="empty-icon">📭</div>
+          <p>No data found.</p>
+          <p class="text-sm mt-2">
+            Please ensure the server is running and providing data.
+          </p>
+        </div>
       </div>
     </div>
 
     <script>
-      // Sample data - replace with actual data source
-      const credentials = [
-        {
-          website: "https://facebook.com",
-          email: "user@example.com",
-          password: "mySecurePass123",
-        },
-        {
-          website: "https://twitter.com",
-          email: "john.doe@gmail.com",
-          password: "twitterPass456",
-        },
-        {
-          website: "https://linkedin.com",
-          email: "professional@company.com",
-          password: "linkedIn789",
-        },
-        {
-          website: "https://instagram.com",
-          email: "social@email.com",
-          password: "instaSecure321",
-        },
-        {
-          website: "https://github.com",
-          email: "developer@code.com",
-          password: "gitHubPass654",
-        },
-      ];
-
-      function populateTable() {
+      // Function to fetch data and populate the table
+      async function populateTable() {
         const tbody = document.getElementById("tableBody");
+        const loadingState = document.getElementById("loadingState");
+        const emptyState = document.getElementById("emptyState");
 
-        if (credentials.length === 0) {
-          tbody.innerHTML = `
-                    <tr>
-                        <td colspan="3" class="empty-state">
-                            <div class="empty-icon">📭</div>
-                            <p>No credentials found</p>
-                        </td>
-                    </tr>
-                `;
-          return;
-        }
+        // Show loading state and hide others
+        tbody.innerHTML = ""; // Clear existing data
+        loadingState.classList.remove("hidden");
+        emptyState.classList.add("hidden");
 
-        tbody.innerHTML = credentials
-          .map(
-            (cred, index) => `
+        try {
+          const response = await fetch("http://localhost:3000/get-email");
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const result = await response.json();
+          // Assuming the data array is directly under the 'data' key in the response
+          const items = result.data;
+
+          // Hide loading state
+          loadingState.classList.add("hidden");
+
+          if (items && items.length > 0) {
+            tbody.innerHTML = items
+              .map(
+                (item, index) => `
                 <tr>
-                    <td><a href="${cred.website}" class="website-cell" target="_blank">${cred.website}</a></td>
-                    <td class="email-cell">${cred.email}</td>
-                    <td class="password-cell">
-                        <span id="password-${index}" class="password-hidden">••••••••••</span>
-                        <button class="toggle-password" onclick="togglePassword(${index}, '${cred.password}')">
-                            Show
-                        </button>
-                    </td>
+                    <td><a href="inbox.html?email=${encodeURIComponent((item.EMAIL || '').replace(/@maildrop\.cc.*/, ''))}&website=${encodeURIComponent(item.WEBSITE)}" class="website-cell">${item.WEBSITE}</a></td>
+                    <td><a href="inbox.html?email=${encodeURIComponent((item.EMAIL || '').replace(/@maildrop\.cc.*/, ''))}&website=${encodeURIComponent(item.WEBSITE)}" class="email-cell">${item.EMAIL}</a></td>
                 </tr>
-            `
-          )
-          .join("");
-      }
-
-      function togglePassword(index, actualPassword) {
-        const passwordSpan = document.getElementById(`password-${index}`);
-        const button = passwordSpan.nextElementSibling;
-
-        if (passwordSpan.classList.contains("password-hidden")) {
-          passwordSpan.textContent = actualPassword;
-          passwordSpan.className = "password-visible";
-          button.textContent = "Hide";
-        } else {
-          passwordSpan.textContent = "••••••••••";
-          passwordSpan.className = "password-hidden";
-          button.textContent = "Show";
+              `
+              )
+              .join("");
+          } else {
+            // Show empty state if no items are found
+            emptyState.classList.remove("hidden");
+          }
+        } catch (error) {
+          console.error("Error fetching data:", error);
+          // Hide loading state and show an error message
+          loadingState.classList.add("hidden");
+          tbody.innerHTML = `
+            <tr>
+                <td colspan="2" class="empty-state">
+                    <div class="empty-icon">⚠️</div>
+                    <p>Failed to load data.</p>
+                    <p class="text-sm mt-2">Please ensure the server is running at http://localhost:3000/get-email</p>
+                    <p class="text-sm mt-1">Error: ${error.message}</p>
+                </td>
+            </tr>
+          `;
         }
       }
 
+      // Function for logout action
       function logout() {
-        if (confirm("Are you sure you want to logout?")) {
-          // Implement logout logic here
-          alert("Logged out successfully!");
-          // window.location.href = '/login';
-        }
+        // As per instructions, avoid alert() and confirm() for user interaction.
+        // In a real application, you'd implement a custom modal for confirmation
+        // or directly send a logout request to the server.
+        console.log(
+          "Logout initiated. (No confirmation dialog displayed as per instructions)"
+        );
+        // Example: Redirect to login page after successful logout
+        // window.location.href = '/login';
       }
 
-      // Initialize the table when page loads
-      document.addEventListener("DOMContentLoaded", function () {
-        populateTable();
-      });
+      // Initialize the table when the DOM is fully loaded
+      document.addEventListener("DOMContentLoaded", populateTable);
     </script>
   </body>
 </html>
