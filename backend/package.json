@@ -1,0 +1,24 @@
+{
+  "name": "appwrite-express-backend",
+  "version": "1.0.0",
+  "description": "A lightweight Express backend for interacting with Appwrite.",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js"
+  },
+  "dependencies": {
+    "@sap/hana-client": "^2.25.29",
+    "axios": "^1.10.0",
+    "cors": "^2.8.5",
+    "dotenv": "^10.0.0",
+    "express": "^4.17.1",
+    "node-appwrite": "^17.1.0"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@eslint/js": "^9.31.0",
+    "eslint": "^9.31.0",
+    "globals": "^16.3.0"
+  }
+}

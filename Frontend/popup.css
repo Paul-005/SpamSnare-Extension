@@ -1,0 +1,48 @@
+.container {
+  width: 300px;
+  padding: 16px;
+  background-color: #222020;
+  border-radius:15px;
+}
+
+body{
+    background-color: transparent;
+    margin:0px;
+    padding:0px;
+    width: auto;
+    height: auto;
+}
+
+.container span{
+    width:auto;
+    height:auto;
+}
+
+h2 {
+  margin-top: 0;
+  font-size: 20px;
+  text-align: center;
+  color: white;
+  font-family: "Share Tech", sans-serif;
+  font-weight: 400;
+  font-style: underline;
+}
+
+button {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 4px;
+  font-size: 1em;
+  border-radius: 8px;
+  cursor: pointer;
+  background-color: rgb(29, 81, 36);
+  color: white;
+  font-family: "Montserrat", sans-serif;
+}
+.result {
+  display: block;
+  margin-top: 4px;
+  min-height: 18px;
+  font-size: 0.95em;
+  color:white;  
+} 

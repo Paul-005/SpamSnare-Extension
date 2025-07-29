@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spamsnare Console</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        color: #ffffff;
+        min-height: 100vh;
+      }
+
+      /* Navbar */
+      .navbar {
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(10px);
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #333;
+        box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
+
+      .logo-icon {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(45deg, #4a9eff, #00d4ff);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.2rem;
+      }
+
+      .user-section {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .user-name {
+        font-weight: 500;
+        color: #e0e0e0;
+      }
+
+      .logout-btn {
+        background: linear-gradient(45deg, #ff4757, #ff3742);
+        border: none;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.3s ease;
+      }
+
+      .logout-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3);
+      }
+
+      /* Main Content */
+      .container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 2rem;
+      }
+
+      .page-title {
+        font-size: 2rem;
+        margin-bottom: 2rem;
+        background: linear-gradient(45deg, #4a9eff, #00d4ff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      /* Table */
+      .table-container {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #ffffff;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+      }
+
+      td {
+        padding: 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        vertical-align: middle;
+      }
+
+      tr:hover {
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .website-cell {
+        color: #4a9eff;
+        text-decoration: none;
+        transition: color 0.3s ease;
+      }
+
+      .website-cell:hover {
+        color: #00d4ff;
+      }
+
+      .email-cell {
+        color: #e0e0e0;
+      }
+
+      /* Password Cell */
+      .password-cell {
+        position: relative;
+      }
+
+      .password-hidden {
+        color: #888;
+        font-family: monospace;
+        letter-spacing: 2px;
+      }
+
+      .password-visible {
+        color: #ffeb3b;
+        font-family: monospace;
+      }
+
+      .toggle-password {
+        background: none;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #4a9eff;
+        padding: 0.3rem 0.6rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        margin-left: 0.5rem;
+        transition: all 0.3s ease;
+      }
+
+      .toggle-password:hover {
+        background: rgba(74, 158, 255, 0.1);
+        border-color: #4a9eff;
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .navbar {
+          padding: 1rem;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .container {
+          padding: 0 1rem;
+        }
+
+        .table-container {
+          overflow-x: auto;
+        }
+
+        table {
+          min-width: 600px;
+        }
+
+        th,
+        td {
+          padding: 0.75rem 0.5rem;
+          font-size: 0.9rem;
+        }
+      }
+
+      /* Empty state */
+      .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #888;
+      }
+
+      .empty-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Navbar -->
+    <nav class="navbar">
+      <div class="logo">
+        <div class="logo-icon">🛡️</div>
+        <span>Spamsnare</span>
+      </div>
+      <div class="user-section">
+        <span class="user-name">Welcome, John Doe</span>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+      <h1 class="page-title">Console Dashboard</h1>
+
+      <div class="table-container">
+        <table id="credentialsTable">
+          <thead>
+            <tr>
+              <th>Website</th>
+              <th>Email</th>
+              <th>Password</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <!-- Data will be populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <script>
+      // Sample data - replace with actual data source
+      const credentials = [
+        {
+          website: "https://facebook.com",
+          email: "user@example.com",
+          password: "mySecurePass123",
+        },
+        {
+          website: "https://twitter.com",
+          email: "john.doe@gmail.com",
+          password: "twitterPass456",
+        },
+        {
+          website: "https://linkedin.com",
+          email: "professional@company.com",
+          password: "linkedIn789",
+        },
+        {
+          website: "https://instagram.com",
+          email: "social@email.com",
+          password: "instaSecure321",
+        },
+        {
+          website: "https://github.com",
+          email: "developer@code.com",
+          password: "gitHubPass654",
+        },
+      ];
+
+      function populateTable() {
+        const tbody = document.getElementById("tableBody");
+
+        if (credentials.length === 0) {
+          tbody.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="empty-state">
+                            <div class="empty-icon">📭</div>
+                            <p>No credentials found</p>
+                        </td>
+                    </tr>
+                `;
+          return;
+        }
+
+        tbody.innerHTML = credentials
+          .map(
+            (cred, index) => `
+                <tr>
+                    <td><a href="${cred.website}" class="website-cell" target="_blank">${cred.website}</a></td>
+                    <td class="email-cell">${cred.email}</td>
+                    <td class="password-cell">
+                        <span id="password-${index}" class="password-hidden">••••••••••</span>
+                        <button class="toggle-password" onclick="togglePassword(${index}, '${cred.password}')">
+                            Show
+                        </button>
+                    </td>
+                </tr>
+            `
+          )
+          .join("");
+      }
+
+      function togglePassword(index, actualPassword) {
+        const passwordSpan = document.getElementById(`password-${index}`);
+        const button = passwordSpan.nextElementSibling;
+
+        if (passwordSpan.classList.contains("password-hidden")) {
+          passwordSpan.textContent = actualPassword;
+          passwordSpan.className = "password-visible";
+          button.textContent = "Hide";
+        } else {
+          passwordSpan.textContent = "••••••••••";
+          passwordSpan.className = "password-hidden";
+          button.textContent = "Show";
+        }
+      }
+
+      function logout() {
+        if (confirm("Are you sure you want to logout?")) {
+          // Implement logout logic here
+          alert("Logged out successfully!");
+          // window.location.href = '/login';
+        }
+      }
+
+      // Initialize the table when page loads
+      document.addEventListener("DOMContentLoaded", function () {
+        populateTable();
+      });
+    </script>
+  </body>
+</html>

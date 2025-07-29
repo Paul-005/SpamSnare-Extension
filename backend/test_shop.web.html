@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ShopVibe - Your Ultimate Shopping Destination</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .container {
+        width: 90%;
+        max-width: 500px;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+
+      .logo {
+        font-size: 2.5rem;
+        font-weight: bold;
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 10px;
+      }
+
+      .subtitle {
+        color: #666;
+        font-size: 1.1rem;
+        margin-bottom: 20px;
+      }
+
+      .progress-bar {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 30px;
+        position: relative;
+      }
+
+      .progress-bar::before {
+        content: "";
+        position: absolute;
+        top: 15px;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: #e0e0e0;
+        z-index: 1;
+      }
+
+      .progress-bar::after {
+        content: "";
+        position: absolute;
+        top: 15px;
+        left: 0;
+        height: 3px;
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        transition: width 0.3s ease;
+        z-index: 2;
+        width: var(--progress-width, 0%);
+      }
+
+      .step {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: #e0e0e0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: #999;
+        transition: all 0.3s ease;
+        z-index: 3;
+        position: relative;
+      }
+
+      .step.active {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        transform: scale(1.1);
+      }
+
+      .step.completed {
+        background: #4caf50;
+        color: white;
+      }
+
+      .form-step {
+        display: none;
+        animation: fadeIn 0.5s ease-in-out;
+      }
+
+      .form-step.active {
+        display: block;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+      }
+
+      .form-group input,
+      .form-group select {
+        width: 100%;
+        padding: 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        background: rgba(255, 255, 255, 0.9);
+      }
+
+      .form-group input:focus,
+      .form-group select:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        transform: translateY(-2px);
+      }
+
+      .shopping-items {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 15px;
+        margin-top: 10px;
+      }
+
+      .item-card {
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 15px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .item-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      .item-card.selected {
+        border-color: #667eea;
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+      }
+
+      .item-card i {
+        font-size: 2rem;
+        margin-bottom: 10px;
+        display: block;
+      }
+
+      .btn {
+        width: 100%;
+        padding: 15px;
+        border: none;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 20px;
+      }
+
+      .btn-primary {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+      }
+
+      .btn-secondary {
+        background: #f8f9fa;
+        color: #333;
+        border: 2px solid #e0e0e0;
+      }
+
+      .btn-secondary:hover {
+        background: #e9ecef;
+      }
+
+      .btn-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .welcome-screen {
+        text-align: center;
+        padding: 40px 0;
+      }
+
+      .welcome-screen h2 {
+        color: #333;
+        margin-bottom: 20px;
+        font-size: 2rem;
+      }
+
+      .welcome-screen p {
+        color: #666;
+        font-size: 1.1rem;
+        line-height: 1.6;
+      }
+
+      .success-animation {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 20px;
+        border-radius: 50%;
+        background: #4caf50;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: bounce 0.6s ease-in-out;
+      }
+
+      @keyframes bounce {
+        0%,
+        20%,
+        50%,
+        80%,
+        100% {
+          transform: translateY(0);
+        }
+        40% {
+          transform: translateY(-20px);
+        }
+        60% {
+          transform: translateY(-10px);
+        }
+      }
+
+      .success-animation i {
+        color: white;
+        font-size: 2rem;
+      }
+
+      .error-message {
+        color: #e74c3c;
+        font-size: 14px;
+        margin-top: 5px;
+        display: none;
+      }
+
+      @media (max-width: 600px) {
+        .container {
+          margin: 20px;
+          padding: 30px 20px;
+        }
+
+        .shopping-items {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="logo">ShopVibe</div>
+        <div class="subtitle">Your Ultimate Shopping Destination</div>
+      </div>
+
+      <!-- Progress Bar -->
+      <div class="progress-bar">
+        <div class="step active" id="step-1">1</div>
+        <div class="step" id="step-2">2</div>
+        <div class="step" id="step-3">3</div>
+        <div class="step" id="step-4">4</div>
+      </div>
+
+      <!-- Netlify Form (hidden) -->
+      <form name="signup" netlify netlify-honeypot="bot-field" hidden>
+        <input type="text" name="name" />
+        <input type="date" name="dob" />
+        <input type="text" name="preferred-item" />
+        <input type="email" name="email" />
+        <input type="password" name="password" />
+      </form>
+
+      <!-- Step 1: Personal Info -->
+      <div class="form-step active" id="form-step-1">
+        <h2 style="margin-bottom: 20px; color: #333">
+          Welcome! Let's get started
+        </h2>
+        <div class="form-group">
+          <label for="name">Full Name</label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            placeholder="Enter your full name"
+            required
+          />
+          <div class="error-message" id="name-error">
+            Please enter your full name
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="dob">Date of Birth</label>
+          <input type="date" id="dob" name="dob" required />
+          <div class="error-message" id="dob-error">
+            Please select your date of birth
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="nextStep()">
+          Continue <i class="fas fa-arrow-right" style="margin-left: 10px"></i>
+        </button>
+      </div>
+
+      <!-- Step 2: Shopping Preferences -->
+      <div class="form-step" id="form-step-2">
+        <h2 style="margin-bottom: 20px; color: #333">
+          What do you love shopping for?
+        </h2>
+        <div class="shopping-items">
+          <div class="item-card" onclick="selectItem(this, 'Electronics')">
+            <i class="fas fa-laptop"></i>
+            <div>Electronics</div>
+          </div>
+          <div class="item-card" onclick="selectItem(this, 'Fashion')">
+            <i class="fas fa-tshirt"></i>
+            <div>Fashion</div>
+          </div>
+          <div class="item-card" onclick="selectItem(this, 'Home & Garden')">
+            <i class="fas fa-home"></i>
+            <div>Home & Garden</div>
+          </div>
+          <div class="item-card" onclick="selectItem(this, 'Sports')">
+            <i class="fas fa-dumbbell"></i>
+            <div>Sports</div>
+          </div>
+          <div class="item-card" onclick="selectItem(this, 'Books')">
+            <i class="fas fa-book"></i>
+            <div>Books</div>
+          </div>
+          <div class="item-card" onclick="selectItem(this, 'Beauty')">
+            <i class="fas fa-palette"></i>
+            <div>Beauty</div>
+          </div>
+        </div>
+        <input type="hidden" id="preferred-item" name="preferred-item" />
+        <div class="error-message" id="item-error">
+          Please select your preferred shopping category
+        </div>
+        <div class="btn-group">
+          <button type="button" class="btn btn-secondary" onclick="prevStep()">
+            <i class="fas fa-arrow-left" style="margin-right: 10px"></i>Back
+          </button>
+          <button type="button" class="btn btn-primary" onclick="nextStep()">
+            Continue
+            <i class="fas fa-arrow-right" style="margin-left: 10px"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 3: Account Setup -->
+      <div class="form-step" id="form-step-3">
+        <h2 style="margin-bottom: 20px; color: #333">Create your account</h2>
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="Enter your email"
+            required
+          />
+          <div class="error-message" id="email-error">
+            Please enter a valid email address
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            placeholder="Create a strong password"
+            required
+          />
+          <div class="error-message" id="password-error">
+            Password must be at least 8 characters long
+          </div>
+        </div>
+        <div class="btn-group">
+          <button type="button" class="btn btn-secondary" onclick="prevStep()">
+            <i class="fas fa-arrow-left" style="margin-right: 10px"></i>Back
+          </button>
+          <button type="button" class="btn btn-primary" onclick="submitForm()">
+            Create Account
+            <i class="fas fa-check" style="margin-left: 10px"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 4: Success -->
+      <div class="form-step" id="form-step-4">
+        <div class="welcome-screen">
+          <div class="success-animation">
+            <i class="fas fa-check"></i>
+          </div>
+          <h2>Welcome to ShopVibe!</h2>
+          <p>
+            Your account has been successfully created. We're excited to have
+            you join our shopping community!
+          </p>
+          <p style="margin-top: 20px; color: #667eea; font-weight: 600">
+            Start exploring amazing deals and products tailored just for you.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let currentStep = 1;
+      const totalSteps = 4;
+      let selectedItem = "";
+
+      // Update progress bar
+      function updateProgressBar() {
+        const progressWidth = ((currentStep - 1) / (totalSteps - 1)) * 100;
+        document
+          .querySelector(".progress-bar")
+          .style.setProperty("--progress-width", progressWidth + "%");
+
+        // Update step indicators
+        for (let i = 1; i <= totalSteps; i++) {
+          const step = document.getElementById(`step-${i}`);
+          if (i < currentStep) {
+            step.classList.add("completed");
+            step.classList.remove("active");
+          } else if (i === currentStep) {
+            step.classList.add("active");
+            step.classList.remove("completed");
+          } else {
+            step.classList.remove("active", "completed");
+          }
+        }
+      }
+
+      // Show current step
+      function showStep(step) {
+        // Hide all steps
+        document
+          .querySelectorAll(".form-step")
+          .forEach((s) => s.classList.remove("active"));
+        // Show current step
+        document.getElementById(`form-step-${step}`).classList.add("active");
+        updateProgressBar();
+      }
+
+      // Validation functions
+      function validateStep1() {
+        const name = document.getElementById("name").value.trim();
+        const dob = document.getElementById("dob").value;
+        let valid = true;
+
+        if (!name) {
+          document.getElementById("name-error").style.display = "block";
+          valid = false;
+        } else {
+          document.getElementById("name-error").style.display = "none";
+        }
+
+        if (!dob) {
+          document.getElementById("dob-error").style.display = "block";
+          valid = false;
+        } else {
+          document.getElementById("dob-error").style.display = "none";
+        }
+
+        return valid;
+      }
+
+      function validateStep2() {
+        if (!selectedItem) {
+          document.getElementById("item-error").style.display = "block";
+          return false;
+        } else {
+          document.getElementById("item-error").style.display = "none";
+          return true;
+        }
+      }
+
+      function validateStep3() {
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
+        let valid = true;
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email || !emailRegex.test(email)) {
+          document.getElementById("email-error").style.display = "block";
+          valid = false;
+        } else {
+          document.getElementById("email-error").style.display = "none";
+        }
+
+        if (!password || password.length < 8) {
+          document.getElementById("password-error").style.display = "block";
+          valid = false;
+        } else {
+          document.getElementById("password-error").style.display = "none";
+        }
+
+        return valid;
+      }
+
+      // Navigation functions
+      function nextStep() {
+        let canProceed = false;
+
+        switch (currentStep) {
+          case 1:
+            canProceed = validateStep1();
+            break;
+          case 2:
+            canProceed = validateStep2();
+            break;
+          case 3:
+            canProceed = validateStep3();
+            break;
+        }
+
+        if (canProceed && currentStep < totalSteps) {
+          currentStep++;
+          showStep(currentStep);
+        }
+      }
+
+      function prevStep() {
+        if (currentStep > 1) {
+          currentStep--;
+          showStep(currentStep);
+        }
+      }
+
+      // Item selection
+      function selectItem(element, item) {
+        // Remove selection from all items
+        document.querySelectorAll(".item-card").forEach((card) => {
+          card.classList.remove("selected");
+        });
+
+        // Add selection to clicked item
+        element.classList.add("selected");
+        selectedItem = item;
+        document.getElementById("preferred-item").value = item;
+      }
+
+      // Form submission
+      function submitForm() {
+        if (!validateStep3()) return;
+
+        // Create form data
+        const formData = new FormData();
+        formData.append("form-name", "signup");
+        formData.append("name", document.getElementById("name").value);
+        formData.append("dob", document.getElementById("dob").value);
+        formData.append("preferred-item", selectedItem);
+        formData.append("email", document.getElementById("email").value);
+        formData.append("password", document.getElementById("password").value);
+
+        // Submit to Netlify
+        fetch("/", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams(formData).toString(),
+        })
+          .then(() => {
+            currentStep = 4;
+            showStep(currentStep);
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            alert("There was an error submitting your form. Please try again.");
+          });
+      }
+
+      // Initialize
+      updateProgressBar();
+    </script>
+  </body>
+</html>
