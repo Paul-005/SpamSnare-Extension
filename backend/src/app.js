@@ -2,7 +2,8 @@ require('dotenv').config(); // <-- Move this to the very top
 
 const express = require('express');
 const { connect } = require('./config/database.js');
-const authRouter = require('./routes/email.js');
+const { authRouter } = require('./routes/auth.js');
+const emailRouter = require('./routes/email.js');
 const inboxRoute = require('./routes/inbox.js');
 const { create } = require('express-handlebars');
 const cors = require('cors');
@@ -18,6 +19,7 @@ app.set('views', './views');
 app.use(cors({ origin: "*" }))
 app.use(express.json());
 app.use("/", authRouter)
+app.use("/", emailRouter)
 app.use('/', inboxRoute);
 
 

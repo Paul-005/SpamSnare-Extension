@@ -33,6 +33,12 @@ document.addEventListener('DOMContentLoaded', () => {
           flaggedResult.textContent = 'Error: ' + chrome.runtime.lastError.message;
         } else {
           flaggedResult.textContent = response && response.message ? response.message : 'No response.';
+        // Style as alert if flagged
+        if (flaggedResult.textContent.trim() === 'Site is flagged.') {
+          flaggedResult.classList.add('alert-flagged');
+        } else {
+          flaggedResult.classList.remove('alert-flagged');
+        }
         }
       });
     });

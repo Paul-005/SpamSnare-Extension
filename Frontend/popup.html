@@ -11,18 +11,23 @@
 
 </head>
 <body>
-  <div class="container">
+  <div class="container" role="main">
     <h2>SpamSnare</h2>
-    <button id="check-flagged">Validate Site</button>
-    <span id="flagged-result" class="result"></span>
-    <br>
-    <button id="generate-email">Generate Email</button>
-    <span id="email-result" class="result"></span>
-    <br>
-    <button id="scan-tnc">Scan Terms & Conditions</button>
-    <span id="tnc-result" class="result"></span>
-    <br>
-    <button id="open-inbox">Open Inbox</button>
+    <div class="section">
+      <button id="check-flagged" aria-describedby="flagged-result">Validate Site</button>
+      <span id="flagged-result" class="result" aria-live="polite"></span>
+    </div>
+    <div class="section">
+      <button id="generate-email" aria-describedby="email-result">Generate Email</button>
+      <span id="email-result" class="result" aria-live="polite"></span>
+    </div>
+    <div class="section">
+      <button id="scan-tnc" aria-describedby="tnc-result">Scan Terms &amp; Conditions</button>
+      <span id="tnc-result" class="result" aria-live="polite"></span>
+    </div>
+    <div class="section">
+      <button id="open-inbox">Open Inbox</button>
+    </div>
   </div>
   <script src="popup.js"></script>
 </body>

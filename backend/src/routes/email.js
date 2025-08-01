@@ -1,19 +1,18 @@
 const { Router } = require("express");
 
-const authRouter = Router();
+const emailRouter = Router();
 const { v4: uuidv4 } = require("uuid");
 const { conn } = require("../config/database");
 
-authRouter.post("/generate-email", (req, res) => {
+emailRouter.post("/generate-email", (req, res) => {
     const { website } = req.body;
 
     if (!website) {
         return res.status(400).json({ error: "Missing website parameter." });
     }
 
-    const match = website.match(
-        /(?:https?:\/\/)?(?:www\.)?(?:[a-z0-9-]+\.)*([a-z0-9-]+\.[a-z]{2,})(?=\/|$)/i
-    );
+    const match = website.match(/^(?:https?:\/\/)?(?:[^@\/\n]+@)?(?:www\.)?(?:[\w-]+\.)*?([\w-]+\.(?:com|org|net|edu|gov|co\.uk|co\.in|in|au|io|dev|me|info|biz|xyz|cc|us|ca|tv|news|app|ai))/i);
+
     if (!match) {
         return res.status(400).json({ error: "Invalid website URL." });
     }
@@ -75,7 +74,7 @@ authRouter.post("/generate-email", (req, res) => {
     }
 });
 
-authRouter.get("/get-email", (req, res) => {
+emailRouter.get("/get-email", (req, res) => {
     const selectQuery = `
     SELECT * FROM USER_WEB 
 `;
@@ -96,4 +95,4 @@ authRouter.get("/get-email", (req, res) => {
     }
 });
 
-module.exports = authRouter;
+module.exports = emailRouter;
