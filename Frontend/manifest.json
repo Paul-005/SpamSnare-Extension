@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "SpamSnare",
   "version": "1.0",
-  "description": "Generate unique emails for sites, flag spam, and scan terms and conditions.",
+  "description": "Generate unique emails for sites, flag spam.",
   "permissions": ["activeTab", "scripting", "storage", "tabs"],
   "host_permissions": ["<all_urls>"],
   "background": {

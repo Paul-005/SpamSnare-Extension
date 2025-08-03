@@ -351,33 +351,6 @@ async function autoFillEmail(email, options = {}) {
   return result;
 }
 
-// Try to extract terms and conditions text from the page
-function extractTermsAndConditions() {
-  // Look for links or sections with common T&C keywords
-  const keywords = ['terms', 'conditions', 'terms of service', 'terms & conditions'];
-  let tncText = '';
-  // Find links
-  const links = Array.from(document.querySelectorAll('a'));
-  for (const link of links) {
-    const text = link.textContent.toLowerCase();
-    if (keywords.some(k => text.includes(k))) {
-      // Try to fetch the linked page (if same origin)
-      if (link.href && link.origin === location.origin) {
-        // Could fetch and return text here (future work)
-        tncText += `Link: ${link.href}\n`;
-      }
-    }
-  }
-  // Find visible sections
-  const elements = Array.from(document.querySelectorAll('body *'));
-  for (const el of elements) {
-    const text = el.textContent.toLowerCase();
-    if (keywords.some(k => text.includes(k)) && el.offsetParent !== null) {
-      tncText += el.textContent + '\n';
-    }
-  }
-  return tncText.trim();
-}
 
 // Listen for messages from popup/background
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -395,12 +368,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
 
     // Return true to indicate async response
-    return true;
-  }
-
-  if (request.action === 'extractTnC') {
-    const tnc = extractTermsAndConditions();
-    sendResponse({ tnc });
     return true;
   }
 });

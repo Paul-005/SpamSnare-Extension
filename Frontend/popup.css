@@ -99,3 +99,68 @@ button:active {
   100% { transform: translateX(0); }
 }
 
+/* Authentication Styles */
+.user-info {
+  border-bottom: 1px solid #333;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+.user-info p {
+  margin: 8px 0;
+  font-size: 0.9em;
+  color: #b0bec5;
+  text-align: center;
+}
+
+.logout-btn {
+  background: linear-gradient(90deg, #d32f2f 0%, #c62828 100%);
+  font-size: 0.85em;
+  padding: 8px 0;
+  margin-top: 8px;
+}
+
+.logout-btn:hover, .logout-btn:focus {
+  background: linear-gradient(90deg, #c62828 0%, #b71c1c 100%);
+  box-shadow: 0 4px 16px rgba(211,47,47,0.18);
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0 12px 0;
+  border: 2px solid #333;
+  border-radius: 8px;
+  background: #2a2a2a;
+  color: #f2f2f2;
+  font-family: 'Montserrat', Arial, sans-serif;
+  font-size: 1em;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input[type="text"]:focus {
+  outline: none;
+  border-color: #2a5298;
+  box-shadow: 0 0 0 3px rgba(42,82,152,0.1);
+}
+
+input[type="text"]::placeholder {
+  color: #666;
+}
+
+label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.95em;
+  color: #cfd8dc;
+  font-weight: 500;
+}
+
+#auth-container p {
+  text-align: center;
+  margin: 12px 0;
+  color: #b0bec5;
+  font-size: 0.95em;
+}
+

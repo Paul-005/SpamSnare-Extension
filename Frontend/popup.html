@@ -1,34 +1,76 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SpamSnareCurs</title>
-  <link rel="stylesheet" href="popup.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bitcount+Grid+Double:wght@100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Share+Tech&display=swap" rel="stylesheet">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SpamSnareCurs</title>
+    <link rel="stylesheet" href="popup.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bitcount+Grid+Double:wght@100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Share+Tech&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- Login/Account Creation Screen -->
+    <div
+      id="auth-container"
+      class="container"
+      role="main"
+      style="display: none"
+    >
+      <h2>SpamSnare</h2>
+      <div class="section">
+        <p>Welcome! Create your account to get started.</p>
+        <button id="create-account-btn">Create Account</button>
+      </div>
 
-</head>
-<body>
-  <div class="container" role="main">
-    <h2>SpamSnare</h2>
-    <div class="section">
-      <button id="check-flagged" aria-describedby="flagged-result">Validate Site</button>
-      <span id="flagged-result" class="result" aria-live="polite"></span>
+      <!-- Account Creation Form -->
+      <div id="account-form" class="section" style="display: none">
+        <label for="user-name">Enter your name:</label>
+        <input
+          type="text"
+          id="user-name"
+          placeholder="Your name"
+          maxlength="50"
+        />
+        <button id="submit-account">Create Account</button>
+        <span id="account-result" class="result" aria-live="polite"></span>
+      </div>
     </div>
-    <div class="section">
-      <button id="generate-email" aria-describedby="email-result">Generate Email</button>
-      <span id="email-result" class="result" aria-live="polite"></span>
+
+    <!-- Main App Screen (shown when logged in) -->
+    <div
+      id="main-container"
+      class="container"
+      role="main"
+      style="display: none"
+    >
+      <div class="user-info">
+        <h2>SpamSnare</h2>
+        <p>
+          Welcome, <span id="user-display-name"></span>! (ID:
+          <span id="user-display-id"></span>)
+        </p>
+        <button id="logout-btn" class="logout-btn">Logout</button>
+      </div>
+      <div class="section">
+        <button id="check-flagged" aria-describedby="flagged-result">
+          Validate Site
+        </button>
+        <span id="flagged-result" class="result" aria-live="polite"></span>
+      </div>
+      <div class="section">
+        <button id="generate-email" aria-describedby="email-result">
+          Generate Email
+        </button>
+        <span id="email-result" class="result" aria-live="polite"></span>
+      </div>
+      <div class="section">
+        <button id="open-inbox">Open Inbox</button>
+      </div>
     </div>
-    <div class="section">
-      <button id="scan-tnc" aria-describedby="tnc-result">Scan Terms &amp; Conditions</button>
-      <span id="tnc-result" class="result" aria-live="polite"></span>
-    </div>
-    <div class="section">
-      <button id="open-inbox">Open Inbox</button>
-    </div>
-  </div>
-  <script src="popup.js"></script>
-</body>
-</html> 
+    <script src="popup.js"></script>
+  </body>
+</html>

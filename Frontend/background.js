@@ -44,18 +44,27 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 
   if (request.action === 'generateEmail') {
-    if (request.action === 'generateEmail') {
-      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        const currentTab = tabs[0];
-        if (currentTab && currentTab.url) {
-          const url = currentTab.url;
 
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      const currentTab = tabs[0];
+      if (currentTab && currentTab.url) {
+        const url = currentTab.url;
+        
+        chrome.storage.local.get(['spamsnare_user'], (result) => {
+          if (!result.spamsnare_user || !result.spamsnare_user.id) {
+            sendResponse({ error: 'User not logged in' });
+            return;
+          }
+          
+          const id = result.spamsnare_user.id;
+          console.log('User ID:', id);
+          
           fetch('http://localhost:3000/generate-email', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ website: url })
+            body: JSON.stringify({ website: url, id })
           })
             .then(response => response.json())
             .then(data => {
@@ -65,32 +74,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               console.log('Error fetching email:', error);
               sendResponse({ error: 'Failed to generate email' });
             });
-        } else {
-          sendResponse({ error: 'No active tab or URL not found.' });
-        }
-      });
+        });
+      } else {
+        sendResponse({ error: 'No active tab or URL not found.' });
+      }
+    });
 
-      return true;
-    }
-  }
-
-  if (request.action === 'scan-tnc') {
-    const url = sender.tab.url;
-    fetch('http://localhost:3000/scan-tnc', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ website: url })
-    })
-      .then(response => response.json())
-      .then(data => {
-        sendResponse({ result: data.result });
-      })
-      .catch(error => {
-        console.error('Error scanning T&C:', error);
-        sendResponse({ error: 'Failed to scan T&C' });
-      });
     return true;
   }
+
 });

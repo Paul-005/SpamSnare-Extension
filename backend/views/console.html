@@ -275,7 +275,15 @@
         emptyState.classList.add("hidden");
 
         try {
-          const response = await fetch("http://localhost:3000/get-email");
+          const response = await fetch("http://localhost:3000/get-email", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              id: JSON.parse(localStorage.getItem("spamsnare_user") || '{}').id,
+            }),
+          });
 
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -293,8 +301,16 @@
               .map(
                 (item, index) => `
                 <tr>
-                    <td><a href="inbox.html?email=${encodeURIComponent((item.EMAIL || '').replace(/@maildrop\.cc.*/, ''))}&website=${encodeURIComponent(item.WEBSITE)}" class="website-cell">${item.WEBSITE}</a></td>
-                    <td><a href="inbox.html?email=${encodeURIComponent((item.EMAIL || '').replace(/@maildrop\.cc.*/, ''))}&website=${encodeURIComponent(item.WEBSITE)}" class="email-cell">${item.EMAIL}</a></td>
+                    <td><a href="inbox.html?email=${encodeURIComponent(
+                      (item.EMAIL || "").replace(/@maildrop\.cc.*/, "")
+                    )}&website=${encodeURIComponent(
+                  item.WEBSITE
+                )}" class="website-cell">${item.WEBSITE}</a></td>
+                    <td><a href="inbox.html?email=${encodeURIComponent(
+                      (item.EMAIL || "").replace(/@maildrop\.cc.*/, "")
+                    )}&website=${encodeURIComponent(
+                  item.WEBSITE
+                )}" class="email-cell">${item.EMAIL}</a></td>
                 </tr>
               `
               )

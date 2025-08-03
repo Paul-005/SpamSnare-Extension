@@ -3,10 +3,10 @@ const { Router } = require("express");
 const emailRouter = Router();
 const { v4: uuidv4 } = require("uuid");
 const { conn } = require("../config/database");
-const { authenticateToken } = require("./auth");
 
 emailRouter.post("/generate-email", (req, res) => {
-    const { website } = req.body;
+    const { website, id } = req.body;
+    console.log(id);
 
     if (!website) {
         return res.status(400).json({ error: "Missing website parameter." });
@@ -23,9 +23,9 @@ emailRouter.post("/generate-email", (req, res) => {
     try {
         // 🔍 Step 1: Check if domain already exists
         const selectStmt = conn.prepare(
-            `SELECT "EMAIL" FROM USER_WEB WHERE "WEBSITE" = ?`
+            `SELECT "email" FROM USER_WEB WHERE "website" = ? AND "id" = ?`
         );
-        const existing = selectStmt.execute([domain]);
+        const existing = selectStmt.execute([domain, id]);
 
 
         if (existing.length > 0) {
@@ -33,7 +33,7 @@ emailRouter.post("/generate-email", (req, res) => {
             return res.status(200).json({
                 message: "Already registered",
                 payload: {
-                    email: existing[0].EMAIL,
+                    email: existing[0].email,
                     website: domain,
                 },
             });
@@ -44,10 +44,10 @@ emailRouter.post("/generate-email", (req, res) => {
         const email = `${uuid}@maildrop.cc`;
 
         const insertQuery = `
-            INSERT INTO USER_WEB ("WEBSITE", "EMAIL")
-            VALUES (?, ?)
+            INSERT INTO USER_WEB ("id", "website", "email")
+            VALUES (?, ?, ?)
         `;
-        const values = [[domain, email]];
+        const values = [[id, domain, email]];
         const insertStmt = conn.prepare(insertQuery);
 
         insertStmt.execBatch(values, (dbErr) => {
@@ -73,13 +73,13 @@ emailRouter.post("/generate-email", (req, res) => {
     }
 });
 
-emailRouter.get("/get-email", (req, res) => {
+emailRouter.post("/get-email", (req, res) => {
     const selectQuery = `
-    SELECT * FROM USER_WEB 
+    SELECT * FROM USER_WEB WHERE "id" = ?
 `;
     try {
         const stmt = conn.prepare(selectQuery);
-        const result = stmt.exec();
+        const result = stmt.execute([req.body.id]);
         if (result.length > 0) {
             res.status(200).json({ data: result });
         } else {
@@ -94,9 +94,6 @@ emailRouter.get("/get-email", (req, res) => {
     }
 });
 
-// protected route
-emailRouter.get("/protected", authenticateToken, (req, res) => {
-    res.json({ message: "Protected route accessed successfully" });
-});
+
 
 module.exports = emailRouter;
