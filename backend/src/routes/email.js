@@ -3,6 +3,7 @@ const { Router } = require("express");
 const emailRouter = Router();
 const { v4: uuidv4 } = require("uuid");
 const { conn } = require("../config/database");
+const { authenticateToken } = require("./auth");
 
 emailRouter.post("/generate-email", (req, res) => {
     const { website } = req.body;
@@ -26,8 +27,6 @@ emailRouter.post("/generate-email", (req, res) => {
         );
         const existing = selectStmt.execute([domain]);
 
-        console.log(existing);
-        console.log(existing.length);
 
         if (existing.length > 0) {
             // ✅ Already registered
@@ -93,6 +92,11 @@ emailRouter.get("/get-email", (req, res) => {
             details: err.messages,
         });
     }
+});
+
+// protected route
+emailRouter.get("/protected", authenticateToken, (req, res) => {
+    res.json({ message: "Protected route accessed successfully" });
 });
 
 module.exports = emailRouter;
