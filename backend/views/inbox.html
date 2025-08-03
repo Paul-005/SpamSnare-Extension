@@ -378,8 +378,8 @@
         const urlParams = new URLSearchParams(window.location.search);
         return urlParams.get(param);
       }
-      const EMAIL_ID = getQueryParam('email') || "";
-      const SENDER = getQueryParam('website') || "";
+      const EMAIL_ID = getQueryParam("email") || "";
+      const SENDER = getQueryParam("website") || "";
 
       // Global state
       let currentEmails = [];
@@ -411,12 +411,17 @@
         const inboxEmail = document.getElementById("inboxEmail");
         if (inboxEmail) {
           const urlParams = new URLSearchParams(window.location.search);
-          const email = urlParams.get('email') || (emailData && emailData.email) || '';
-          const website = urlParams.get('website') || '';
+          const email =
+            urlParams.get("email") || (emailData && emailData.email) || "";
+          const website = urlParams.get("website") || "";
           inboxEmail.textContent =
-            email && website ? `Inbox for: ${email} on ${website}` :
-            email ? `Inbox for: ${email}` :
-            website ? `Inbox for website: ${website}` : '';
+            email && website
+              ? `Inbox for: ${email} on ${website}`
+              : email
+              ? `Inbox for: ${email}`
+              : website
+              ? `Inbox for website: ${website}`
+              : "";
         }
 
         if (
@@ -453,6 +458,17 @@
 
         currentEmails = emails;
 
+        // Determine the mailbox/email for the detail link
+        let mailbox = "";
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get("email")) {
+          mailbox = urlParams.get("email");
+        } else if (emailData && emailData.email) {
+          mailbox = emailData.email;
+        }
+        // Remove domain if present (use only mailbox part)
+        mailbox = (mailbox || "").replace(/@maildrop\.cc$/, "");
+
         container.innerHTML = emails
           .map(
             (email) => `
@@ -464,8 +480,8 @@
                         <div class="flag-container">
                             <span class="flag-icon ${
                               flagCount > 0 ? "flagged" : "unflagged"
-                            }" 
-                                  onclick="toggleFlag('${email.id}')" 
+                            }"
+                                  onclick="toggleFlag('${email.id}')"
                                   title="${
                                     flagCount > 0 ? "Flagged" : "Not flagged"
                                   }">
@@ -478,9 +494,13 @@
                             }
                         </div>
                     </div>
-                    <div class="email-subject">${escapeHtml(
-                      email.subject
-                    )}</div>
+                    <div class="email-subject"><a href="single_mail.html?email=${encodeURIComponent(
+                      mailbox
+                    )}&id=${encodeURIComponent(
+              email.id
+            )}" style="color:inherit;text-decoration:underline;">${escapeHtml(
+              email.subject
+            )}</a></div>
                     <div class="email-meta">
                         <span class="email-id">ID: ${email.id}</span>
                         <span class="email-time">Just now</span>

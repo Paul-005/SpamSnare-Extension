@@ -38,13 +38,13 @@ inboxRoute.post('/check-inbox', async (req, res) => {
         }
 
         if (flag > 0 && website) {
-            const selectQuery = "SELECT * FROM flagged_site WHERE website_address = ?";
+            const selectQuery = "SELECT * FROM FLAGGED_SITE WHERE WEBSITE_ADDRESS = ?";
             const stmt = conn.prepare(selectQuery);
             stmt.execute([website], function (dbErr, rows) {
                 if (dbErr) {
                     console.error('Database select error:', dbErr.message);
                 } else if (rows.length === 0) {
-                    const insertQuery = "INSERT INTO flagged_site (website_address, flags, email) VALUES (?, ?, ?)";
+                    const insertQuery = "INSERT INTO FLAGGED_SITE (WEBSITE_ADDRESS, FLAGS, EMAIL) VALUES (?, ?, ?)";
                     const values = [[website, flag, email]];
                     const stmt = conn.prepare(insertQuery);
                     stmt.execBatch(values, function (dbErr) {
@@ -75,6 +75,8 @@ inboxRoute.post('/specific-email', async (req, res) => {
         return res.status(400).json({ error: 'Missing email parameter or .' });
     }
 
+    console.log(email, id);
+
     const url = 'https://api.maildrop.cc/graphql';
     const data = {
         query: `query Example { message(mailbox:"${email}", id:"${id}") { id html data } }`
@@ -95,8 +97,6 @@ inboxRoute.post('/specific-email', async (req, res) => {
             details: error.response ? error.response.data : error.message
         });
     }
-
-    res.status(200).json({ email });
 });
 
 inboxRoute.post('/check-flagged', async (req, res) => {

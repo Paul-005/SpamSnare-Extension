@@ -274,15 +274,21 @@
         loadingState.classList.remove("hidden");
         emptyState.classList.add("hidden");
 
+        const id = new URLSearchParams(window.location.search).get("id");
+        if (!id) {
+          alert("No ID provided");
+          return;
+        }
+
+        console.log(id);
+
         try {
           const response = await fetch("http://localhost:3000/get-email", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              id: JSON.parse(localStorage.getItem("spamsnare_user") || '{}').id,
-            }),
+            body: JSON.stringify({ id }),
           });
 
           if (!response.ok) {
@@ -292,6 +298,7 @@
           const result = await response.json();
           // Assuming the data array is directly under the 'data' key in the response
           const items = result.data;
+          console.log(items);
 
           // Hide loading state
           loadingState.classList.add("hidden");
@@ -302,15 +309,15 @@
                 (item, index) => `
                 <tr>
                     <td><a href="inbox.html?email=${encodeURIComponent(
-                      (item.EMAIL || "").replace(/@maildrop\.cc.*/, "")
+                      (item.email || "").replace(/@maildrop\.cc.*/, "")
                     )}&website=${encodeURIComponent(
-                  item.WEBSITE
-                )}" class="website-cell">${item.WEBSITE}</a></td>
+                  item.website
+                )}" class="website-cell">${item.website}</a></td>
                     <td><a href="inbox.html?email=${encodeURIComponent(
-                      (item.EMAIL || "").replace(/@maildrop\.cc.*/, "")
+                      (item.email || "").replace(/@maildrop\.cc.*/, "")
                     )}&website=${encodeURIComponent(
-                  item.WEBSITE
-                )}" class="email-cell">${item.EMAIL}</a></td>
+                  item.website
+                )}" class="email-cell">${item.email}</a></td>
                 </tr>
               `
               )

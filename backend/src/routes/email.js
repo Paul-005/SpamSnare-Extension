@@ -74,12 +74,17 @@ emailRouter.post("/generate-email", (req, res) => {
 });
 
 emailRouter.post("/get-email", (req, res) => {
+    const id = req.body.id;
+    console.log(id);
+    if (!id) {
+        return res.status(400).json({ error: "Missing ID parameter." });
+    }
     const selectQuery = `
     SELECT * FROM USER_WEB WHERE "id" = ?
 `;
     try {
         const stmt = conn.prepare(selectQuery);
-        const result = stmt.execute([req.body.id]);
+        const result = stmt.execute([id]);
         if (result.length > 0) {
             res.status(200).json({ data: result });
         } else {

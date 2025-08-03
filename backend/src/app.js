@@ -5,17 +5,11 @@ const { connect } = require('./config/database.js');
 const { authRouter } = require('./routes/auth.js');
 const emailRouter = require('./routes/email.js');
 const inboxRoute = require('./routes/inbox.js');
-const { create } = require('express-handlebars');
 const cors = require('cors');
 const app = express();
 const PORT = 3000;
 
-const hbs = create({ /* config */ });
 
-// Register `hbs.engine` with the Express app.
-app.engine('handlebars', hbs.engine);
-app.set('view engine', 'handlebars');
-app.set('views', './views');
 app.use(cors({ origin: "*" }))
 app.use(express.json());
 app.use("/", authRouter)
