@@ -206,6 +206,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Open Inbox
   openInboxBtn.addEventListener('click', () => {
-    chrome.tabs.create({ url: '../backend/views/inbox.html' });
+    chrome.storage.local.get('spamsnare_user', (result) => {
+      if (result.spamsnare_user && result.spamsnare_user.id) {
+        chrome.tabs.create({ url: '/views/console.html?id=' + result.spamsnare_user.id });
+      }
+    });
   });
 }); 
