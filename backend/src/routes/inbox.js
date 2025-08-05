@@ -29,6 +29,7 @@ inboxRoute.post('/check-inbox', async (req, res) => {
         const inbox = response.data?.data?.inbox || [];
         if (inbox.length > 0 && website) {
             const websiteLower = website.toLowerCase();
+            var api_stmp = process.env.SMTP_SERVER;
             for (const mail of inbox) {
                 if (typeof mail.headerfrom === 'string' && !mail.headerfrom.toLowerCase().includes(websiteLower)) {
                     flag = flag + 1;
