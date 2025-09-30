@@ -352,12 +352,271 @@ async function autoFillEmail(email, options = {}) {
 }
 
 
+// Email hiding functionality
+let hiddenEmails = new Set();
+let emailObserver = null;
+let hiddenInputs = new Map(); // Track inputs with hidden emails
+
+// Function to visually hide email in input while preserving the actual value
+function hideInputVisually(input, email) {
+  // Skip if already hidden
+  if (input.dataset.spamsnareHidden === 'true') {
+    return;
+  }
+  
+  // Mark as hidden
+  input.dataset.spamsnareHidden = 'true';
+  
+  // Store original value and email
+  const originalValue = input.value;
+  hiddenInputs.set(input, { originalValue, email });
+  
+  // Simple approach: Use CSS text-security to hide characters
+  // This preserves the actual value while making it visually hidden
+  input.style.webkitTextSecurity = 'disc';
+  input.style.textSecurity = 'disc';
+  input.style.fontFamily = 'monospace';
+  input.style.color = '#999';
+  input.style.fontSize = '14px';
+  
+  // Add a subtle indicator that this is hidden
+  input.style.backgroundColor = '#f9f9f9';
+  input.style.border = '1px dashed #ccc';
+  
+  // Add tooltip to indicate hidden email
+  input.title = 'Email address is hidden for privacy';
+  
+  // Prevent user from editing the hidden email
+  input.readOnly = true;
+  
+  // Remove hiding when input is focused (for form interaction)
+  input.addEventListener('focus', () => {
+    input.style.webkitTextSecurity = '';
+    input.style.textSecurity = '';
+    input.style.color = '';
+    input.style.backgroundColor = '';
+    input.style.border = '';
+    input.readOnly = false;
+  });
+  
+  // Restore hiding when input loses focus
+  input.addEventListener('blur', () => {
+    // Only restore hiding if the value is still a maildrop.cc email
+    if (input.value.includes('maildrop.cc')) {
+      input.style.webkitTextSecurity = 'disc';
+      input.style.textSecurity = 'disc';
+      input.style.color = '#999';
+      input.style.backgroundColor = '#f9f9f9';
+      input.style.border = '1px dashed #ccc';
+      input.readOnly = true;
+      
+      // Update stored value
+      const data = hiddenInputs.get(input);
+      if (data) {
+        data.originalValue = input.value;
+      }
+    } else {
+      // If user changed to non-maildrop email, remove hiding
+      input.dataset.spamsnareHidden = 'false';
+      hiddenInputs.delete(input);
+    }
+  });
+}
+
+// Function to hide maildrop.cc emails from the page
+function hideMaildropEmails(emailToHide = null) {
+  // If specific email provided, add to hidden set
+  if (emailToHide && emailToHide.includes('maildrop.cc')) {
+    hiddenEmails.add(emailToHide);
+  }
+
+  // Find all text nodes containing maildrop.cc emails
+  const walker = document.createTreeWalker(
+    document.body,
+    NodeFilter.SHOW_TEXT,
+    {
+      acceptNode: function (node) {
+        // Skip script and style elements
+        const parent = node.parentElement;
+        if (parent && (parent.tagName === 'SCRIPT' || parent.tagName === 'STYLE')) {
+          return NodeFilter.FILTER_REJECT;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    }
+  );
+
+  const textNodes = [];
+  let node;
+  while (node = walker.nextNode()) {
+    if (node.textContent.includes('maildrop.cc')) {
+      textNodes.push(node);
+    }
+  }
+
+  // Process each text node
+  textNodes.forEach(textNode => {
+    let content = textNode.textContent;
+    let modified = false;
+
+    // Hide all maildrop.cc emails or specific ones
+    const emailRegex = /[a-zA-Z0-9._%+-]+@maildrop\.cc/g;
+    const matches = content.match(emailRegex);
+
+    if (matches) {
+      matches.forEach(email => {
+        // If no specific email to hide, hide all maildrop.cc emails
+        // If specific email provided, only hide that one
+        if (!emailToHide || hiddenEmails.has(email)) {
+          // Replace with placeholder or hide completely
+          content = content.replace(email, '[Hidden Email]');
+          modified = true;
+        }
+      });
+    }
+
+    if (modified) {
+      textNode.textContent = content;
+    }
+  });
+
+  // Hide emails in input fields using visual techniques while preserving actual values
+  const inputs = document.querySelectorAll('input[type="email"], input[type="text"], input:not([type])');
+  inputs.forEach(input => {
+    if (input.value && input.value.includes('maildrop.cc')) {
+      const emailRegex = /[a-zA-Z0-9._%+-]+@maildrop\.cc/g;
+      const matches = input.value.match(emailRegex);
+      
+      if (matches) {
+        matches.forEach(email => {
+          if (!emailToHide || hiddenEmails.has(email)) {
+            // Store the real email value
+            input.dataset.realEmail = input.value;
+            
+            // Create visual hiding without changing the actual value
+            hideInputVisually(input, email);
+          }
+        });
+      }
+    }
+  });
+}
+
+// Function to start monitoring for new maildrop.cc emails
+function startEmailHiding() {
+  // Initial hiding
+  hideMaildropEmails();
+
+  // Set up mutation observer to watch for new content
+  if (emailObserver) {
+    emailObserver.disconnect();
+  }
+
+  emailObserver = new MutationObserver(function (mutations) {
+    let shouldCheck = false;
+
+    mutations.forEach(function (mutation) {
+      // Check if new nodes were added
+      if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+        shouldCheck = true;
+      }
+      // Check if text content changed
+      if (mutation.type === 'characterData') {
+        shouldCheck = true;
+      }
+    });
+
+    if (shouldCheck) {
+      // Debounce the hiding function
+      setTimeout(() => hideMaildropEmails(), 100);
+    }
+  });
+
+  // Start observing
+  emailObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+    characterData: true
+  });
+}
+
+// Function to stop email hiding
+function stopEmailHiding() {
+  if (emailObserver) {
+    emailObserver.disconnect();
+    emailObserver = null;
+  }
+  hiddenEmails.clear();
+}
+
+// Function to ensure real email values are preserved during form submission
+function setupFormSubmissionHandling() {
+  // Handle form submissions to restore real email values
+  document.addEventListener('submit', (event) => {
+    const form = event.target;
+    if (form.tagName === 'FORM') {
+      // Temporarily restore real values for hidden inputs in this form
+      const formInputs = form.querySelectorAll('input');
+      formInputs.forEach(input => {
+        if (hiddenInputs.has(input)) {
+          const data = hiddenInputs.get(input);
+          // Ensure the real email value is set for form submission
+          input.value = data.originalValue;
+        }
+      });
+    }
+  }, true); // Use capture phase to ensure this runs before other handlers
+  
+  // Also handle AJAX form submissions by monitoring input changes
+  document.addEventListener('change', (event) => {
+    const input = event.target;
+    if (input.tagName === 'INPUT' && hiddenInputs.has(input)) {
+      // If user manually changes the input, update our stored value
+      const data = hiddenInputs.get(input);
+      if (input.value !== '[Hidden Email]') {
+        data.originalValue = input.value;
+      }
+    }
+  });
+}
+
+// Auto-start email hiding when page loads
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      startEmailHiding();
+      setupFormSubmissionHandling();
+    }, 1000); // Wait 1 second after DOM is ready
+  });
+} else {
+  // DOM is already ready
+  setTimeout(() => {
+    startEmailHiding();
+    setupFormSubmissionHandling();
+  }, 1000);
+}
+
+// Also start hiding when page is fully loaded (for dynamic content)
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    startEmailHiding();
+  }, 2000); // Wait 2 seconds after full page load
+});
+
 // Listen for messages from popup/background
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'fillEmailField') {
     // Handle async function properly
     fillEmailField(request.email)
       .then(result => {
+        // If email was filled successfully and it's a maildrop.cc email, hide it immediately
+        if (result.success && request.email && request.email.includes('maildrop.cc')) {
+          setTimeout(() => {
+            hideMaildropEmails(request.email);
+            // Ensure hiding is active
+            startEmailHiding();
+          }, 200); // Reduced delay for immediate hiding
+        }
         sendResponse(result);
       })
       .catch(error => {

@@ -42,33 +42,33 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
-
   if (request.action === 'generateEmail') {
-
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       const currentTab = tabs[0];
       if (currentTab && currentTab.url) {
         const url = currentTab.url;
         
-        chrome.storage.local.get(['spamsnare_user'], (result) => {
-          if (!result.spamsnare_user || !result.spamsnare_user.id) {
+        chrome.storage.local.get(['spamsnare_token'], (result) => {
+          if (!result.spamsnare_token) {
             sendResponse({ error: 'User not logged in' });
             return;
           }
           
-          const id = result.spamsnare_user.id;
-          console.log('User ID:', id);
-          
           fetch('http://localhost:3000/generate-email', {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${result.spamsnare_token}`
             },
-            body: JSON.stringify({ website: url, id })
+            body: JSON.stringify({ website: url })
           })
             .then(response => response.json())
             .then(data => {
-              sendResponse({ email: data.payload.email, message: data.message });
+              if (data.error) {
+                sendResponse({ error: data.error });
+              } else {
+                sendResponse({ email: data.payload.email, message: data.message });
+              }
             })
             .catch(error => {
               console.log('Error fetching email:', error);
@@ -82,5 +82,4 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     return true;
   }
-
 });

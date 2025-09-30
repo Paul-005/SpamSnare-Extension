@@ -4,38 +4,67 @@ document.addEventListener('DOMContentLoaded', () => {
   // Authentication elements
   const authContainer = document.getElementById('auth-container');
   const mainContainer = document.getElementById('main-container');
-  const createAccountBtn = document.getElementById('create-account-btn');
-  const accountForm = document.getElementById('account-form');
-  const userNameInput = document.getElementById('user-name');
-  const submitAccountBtn = document.getElementById('submit-account');
-  const accountResult = document.getElementById('account-result');
-  const userDisplayName = document.getElementById('user-display-name');
-  const userDisplayId = document.getElementById('user-display-id');
-  const logoutBtn = document.getElementById('logout-btn');
-
+  
+  // Toggle buttons
+  const showLoginBtn = document.getElementById('show-login-btn');
+  const showRegisterBtn = document.getElementById('show-register-btn');
+  
+  // Login form elements
+  const loginForm = document.getElementById('login-form');
+  const loginEmail = document.getElementById('login-email');
+  const loginPassword = document.getElementById('login-password');
+  const submitLoginBtn = document.getElementById('submit-login');
+  const loginResult = document.getElementById('login-result');
+  
+  // Register form elements
+  const registerForm = document.getElementById('register-form');
+  const registerName = document.getElementById('register-name');
+  const registerEmail = document.getElementById('register-email');
+  const registerPassword = document.getElementById('register-password');
+  const registerConfirmPassword = document.getElementById('register-confirm-password');
+  const submitRegisterBtn = document.getElementById('submit-register');
+  const registerResult = document.getElementById('register-result');
+  
   // Main app elements
+  const userDisplayName = document.getElementById('user-display-name');
+  const logoutBtn = document.getElementById('logout-btn');
   const checkFlaggedBtn = document.getElementById('check-flagged');
   const flaggedResult = document.getElementById('flagged-result');
   const generateEmailBtn = document.getElementById('generate-email');
   const emailResult = document.getElementById('email-result');
-  const scanTncBtn = document.getElementById('scan-tnc');
-  const tncResult = document.getElementById('tnc-result');
   const openInboxBtn = document.getElementById('open-inbox');
 
   // Check authentication status on load
   checkAuthStatus();
 
   // Authentication Functions
-  function checkAuthStatus() {
-    chrome.storage.local.get(['spamsnare_user'], (result) => {
-      if (result.spamsnare_user && result.spamsnare_user.id) {
-        // User is logged in
-        showMainApp(result.spamsnare_user);
+  async function checkAuthStatus() {
+    try {
+      const result = await chrome.storage.local.get(['spamsnare_token', 'spamsnare_user']);
+      
+      if (result.spamsnare_token && result.spamsnare_user) {
+        // Verify token is still valid
+        const response = await fetch('http://localhost:3000/me', {
+          headers: {
+            'Authorization': `Bearer ${result.spamsnare_token}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          showMainApp(data.user);
+        } else {
+          // Token is invalid, clear storage and show auth
+          await chrome.storage.local.remove(['spamsnare_token', 'spamsnare_user']);
+          showAuthScreen();
+        }
       } else {
-        // User needs to create account
         showAuthScreen();
       }
-    });
+    } catch (error) {
+      console.error('Auth check error:', error);
+      showAuthScreen();
+    }
   }
 
   function showAuthScreen() {
@@ -47,88 +76,170 @@ document.addEventListener('DOMContentLoaded', () => {
     authContainer.style.display = 'none';
     mainContainer.style.display = 'block';
     userDisplayName.textContent = user.name;
-    userDisplayId.textContent = user.id;
   }
 
-  function generateRandomId() {
-    return Math.floor(1000 + Math.random() * 9000).toString();
+  // Toggle between login and register forms
+  showLoginBtn.addEventListener('click', () => {
+    showLoginBtn.classList.add('active');
+    showRegisterBtn.classList.remove('active');
+    loginForm.style.display = 'block';
+    registerForm.style.display = 'none';
+    clearResults();
+  });
+
+  showRegisterBtn.addEventListener('click', () => {
+    showRegisterBtn.classList.add('active');
+    showLoginBtn.classList.remove('active');
+    registerForm.style.display = 'block';
+    loginForm.style.display = 'none';
+    clearResults();
+  });
+
+  function clearResults() {
+    loginResult.textContent = '';
+    loginResult.className = 'result';
+    registerResult.textContent = '';
+    registerResult.className = 'result';
   }
 
-  async function createUserAccount(name) {
-    const userId = generateRandomId();
-    const user = {
-      name: name.trim(),
-      id: userId,
-      createdAt: new Date().toISOString()
-    };
+  function showResult(element, message, type = 'info') {
+    element.textContent = message;
+    element.className = `result ${type}`;
+  }
 
-    const response = await fetch('http://localhost:3000/register', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ id: userId, name })
-    });
+  // Login functionality
+  submitLoginBtn.addEventListener('click', async () => {
+    const email = loginEmail.value.trim();
+    const password = loginPassword.value;
 
-    if (!response.ok) {
-      accountResult.textContent = 'Error creating account. Please try again.';
-      accountResult.style.color = 'red';
+    if (!email || !password) {
+      showResult(loginResult, 'Please fill in all fields.', 'error');
       return;
     }
 
-    console.log(response.data);
+    showResult(loginResult, 'Logging in...', 'loading');
+    submitLoginBtn.disabled = true;
 
-    chrome.storage.local.set({ spamsnare_user: user }, () => {
-      if (chrome.runtime.lastError) {
-        accountResult.textContent = 'Error creating account. Please try again.';
-        accountResult.style.color = 'red';
-      } else {
-        accountResult.textContent = 'Account created successfully!';
-        accountResult.style.color = 'green';
+    try {
+      const response = await fetch('http://localhost:3000/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Store token and user data
+        await chrome.storage.local.set({
+          spamsnare_token: data.token,
+          spamsnare_user: data.user
+        });
+
+        showResult(loginResult, 'Login successful!', 'success');
         setTimeout(() => {
-          showMainApp(user);
-        }, 1500);
+          showMainApp(data.user);
+        }, 1000);
+      } else {
+        showResult(loginResult, data.message || 'Login failed.', 'error');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      showResult(loginResult, 'Network error. Please try again.', 'error');
+    } finally {
+      submitLoginBtn.disabled = false;
+    }
+  });
+
+  // Register functionality
+  submitRegisterBtn.addEventListener('click', async () => {
+    const name = registerName.value.trim();
+    const email = registerEmail.value.trim();
+    const password = registerPassword.value;
+    const confirmPassword = registerConfirmPassword.value;
+
+    if (!name || !email || !password || !confirmPassword) {
+      showResult(registerResult, 'Please fill in all fields.', 'error');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      showResult(registerResult, 'Passwords do not match.', 'error');
+      return;
+    }
+
+    if (password.length < 6) {
+      showResult(registerResult, 'Password must be at least 6 characters.', 'error');
+      return;
+    }
+
+    showResult(registerResult, 'Creating account...', 'loading');
+    submitRegisterBtn.disabled = true;
+
+    try {
+      const response = await fetch('http://localhost:3000/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name, email, password })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Store token and user data
+        await chrome.storage.local.set({
+          spamsnare_token: data.token,
+          spamsnare_user: data.user
+        });
+
+        showResult(registerResult, 'Account created successfully!', 'success');
+        setTimeout(() => {
+          showMainApp(data.user);
+        }, 1000);
+      } else {
+        showResult(registerResult, data.message || 'Registration failed.', 'error');
+      }
+    } catch (error) {
+      console.error('Register error:', error);
+      showResult(registerResult, 'Network error. Please try again.', 'error');
+    } finally {
+      submitRegisterBtn.disabled = false;
+    }
+  });
+
+  // Enter key handlers
+  [loginEmail, loginPassword].forEach(input => {
+    input.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        submitLoginBtn.click();
       }
     });
-  }
-
-  // Authentication Event Listeners
-  createAccountBtn.addEventListener('click', () => {
-    accountForm.style.display = 'block';
-    userNameInput.focus();
   });
 
-  submitAccountBtn.addEventListener('click', () => {
-    const name = userNameInput.value.trim();
-    if (!name) {
-      accountResult.textContent = 'Please enter your name.';
-      accountResult.style.color = 'red';
-      return;
-    }
-    if (name.length < 2) {
-      accountResult.textContent = 'Name must be at least 2 characters long.';
-      accountResult.style.color = 'red';
-      return;
-    }
-    accountResult.textContent = 'Creating account...';
-    accountResult.style.color = 'blue';
-    createUserAccount(name);
-  });
-
-  userNameInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      submitAccountBtn.click();
-    }
-  });
-
-  logoutBtn.addEventListener('click', () => {
-    chrome.storage.local.remove(['spamsnare_user'], () => {
-      showAuthScreen();
-      // Reset form
-      accountForm.style.display = 'none';
-      userNameInput.value = '';
-      accountResult.textContent = '';
+  [registerName, registerEmail, registerPassword, registerConfirmPassword].forEach(input => {
+    input.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        submitRegisterBtn.click();
+      }
     });
+  });
+
+  // Logout functionality
+  logoutBtn.addEventListener('click', async () => {
+    await chrome.storage.local.remove(['spamsnare_token', 'spamsnare_user']);
+    showAuthScreen();
+    // Reset forms
+    loginEmail.value = '';
+    loginPassword.value = '';
+    registerName.value = '';
+    registerEmail.value = '';
+    registerPassword.value = '';
+    registerConfirmPassword.value = '';
+    clearResults();
   });
 
   // Gets current active tab
@@ -188,21 +299,17 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
           }
           if (fillResp && fillResp.success) {
-            emailResult.textContent = 'Email inserted!';
+            emailResult.textContent = 'Email inserted and auto-hidden!';
+            // Email hiding is automatically triggered in content.js
           } else if (fillResp && fillResp.reason) {
             emailResult.textContent = 'Failed: ' + fillResp.reason;
           } else {
             emailResult.textContent = 'Failed to insert email.';
           }
-          // Step 3: Save email usage (for backend tracking)
-          chrome.runtime.sendMessage({ action: 'saveEmailUsage', email, url: tab.url }, (saveResp) => {
-            // Optionally handle saveResp
-          });
         });
       });
     });
   });
-
 
   // Open Inbox
   openInboxBtn.addEventListener('click', () => {
@@ -212,4 +319,4 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
-}); 
+});

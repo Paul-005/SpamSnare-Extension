@@ -7,7 +7,6 @@
     "start": "node src/app.js"
   },
   "dependencies": {
-    "@sap/hana-client": "^2.25.29",
     "axios": "^1.10.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
@@ -15,7 +14,9 @@
     "express": "^4.17.1",
     "express-handlebars": "^8.0.3",
     "jsonwebtoken": "^9.0.2",
-    "node-appwrite": "^17.1.0"
+    "mongoose": "^8.0.0",
+    "node-appwrite": "^17.1.0",
+    "uuid": "^9.0.0"
   },
   "author": "",
   "license": "ISC",

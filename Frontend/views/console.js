@@ -1,37 +1,88 @@
+// Function to get stored token
+async function getStoredToken() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['spamsnare_token'], (result) => {
+      resolve(result.spamsnare_token);
+    });
+  });
+}
+
+// Function to get stored user
+async function getStoredUser() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['spamsnare_user'], (result) => {
+      resolve(result.spamsnare_user);
+    });
+  });
+}
+
+// Function to check authentication and redirect if needed
+async function checkAuth() {
+  const token = await getStoredToken();
+  const user = await getStoredUser();
+  
+  if (!token || !user) {
+    // Redirect to popup or show login message
+    document.body.innerHTML = `
+      <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column;">
+        <h2>Authentication Required</h2>
+        <p>Please login through the SpamSnare extension popup first.</p>
+        <button onclick="window.close()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #4a9eff; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
+      </div>
+    `;
+    return null;
+  }
+  
+  // Update user name in navbar
+  const userNameElement = document.querySelector('.user-name');
+  if (userNameElement) {
+    userNameElement.textContent = `Welcome, ${user.name}`;
+  }
+  
+  return token;
+}
+
 // Function to fetch data and populate the table
 async function populateTable() {
   const tbody = document.getElementById("tableBody");
   const loadingState = document.getElementById("loadingState");
   const emptyState = document.getElementById("emptyState");
 
+  // Check authentication first
+  const token = await checkAuth();
+  if (!token) return;
+
   // Show loading state and hide others
   tbody.innerHTML = ""; // Clear existing data
   loadingState.classList.remove("hidden");
   emptyState.classList.add("hidden");
 
-  const id = new URLSearchParams(window.location.search).get("id");
-  if (!id) {
-    alert("No ID provided");
-    return;
-  }
-
-  console.log(id);
-
   try {
-    const response = await fetch("http://localhost:3000/get-email", {
-      method: "POST",
+    const response = await fetch("http://localhost:3000/get-emails", {
+      method: "GET",
       headers: {
         "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ id }),
+        "Authorization": `Bearer ${token}`
+      }
     });
 
     if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        // Token is invalid, clear storage and show auth error
+        await chrome.storage.local.remove(['spamsnare_token', 'spamsnare_user']);
+        document.body.innerHTML = `
+          <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column;">
+            <h2>Session Expired</h2>
+            <p>Please login again through the SpamSnare extension popup.</p>
+            <button onclick="window.close()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #4a9eff; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
+          </div>
+        `;
+        return;
+      }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const result = await response.json();
-    // Assuming the data array is directly under the 'data' key in the response
     const items = result.data;
     console.log(items);
 
@@ -70,7 +121,7 @@ async function populateTable() {
                 <td colspan="2" class="empty-state">
                     <div class="empty-icon">⚠️</div>
                     <p>Failed to load data.</p>
-                    <p class="text-sm mt-2">Please ensure the server is running at http://localhost:3000/get-email</p>
+                    <p class="text-sm mt-2">Please ensure the server is running and you're logged in.</p>
                     <p class="text-sm mt-1">Error: ${error.message}</p>
                 </td>
             </tr>
@@ -79,15 +130,18 @@ async function populateTable() {
 }
 
 // Function for logout action
-function logout() {
-  // As per instructions, avoid alert() and confirm() for user interaction.
-  // In a real application, you'd implement a custom modal for confirmation
-  // or directly send a logout request to the server.
-  console.log(
-    "Logout initiated. (No confirmation dialog displayed as per instructions)"
-  );
-  // Example: Redirect to login page after successful logout
-  // window.location.href = '/login';
+async function logout() {
+  // Clear stored authentication data
+  await chrome.storage.local.remove(['spamsnare_token', 'spamsnare_user']);
+  
+  // Show logout message and close window
+  document.body.innerHTML = `
+    <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column;">
+      <h2>Logged Out</h2>
+      <p>You have been successfully logged out.</p>
+      <button onclick="window.close()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #4a9eff; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
+    </div>
+  `;
 }
 
 // Initialize the table when the DOM is fully loaded

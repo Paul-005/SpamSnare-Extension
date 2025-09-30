@@ -1,12 +1,13 @@
 const { Router } = require("express");
+const { v4: uuidv4 } = require("uuid");
+const UserWeb = require("../models/UserWeb");
+const { authenticateToken } = require("./auth");
 
 const emailRouter = Router();
-const { v4: uuidv4 } = require("uuid");
-const { conn } = require("../config/database");
 
-emailRouter.post("/generate-email", (req, res) => {
-    const { website, id } = req.body;
-    console.log(id);
+emailRouter.post("/generate-email", authenticateToken, async (req, res) => {
+    const { website } = req.body;
+    const userId = req.user.userId; // Get user ID from JWT token
 
     if (!website) {
         return res.status(400).json({ error: "Missing website parameter." });
@@ -21,19 +22,15 @@ emailRouter.post("/generate-email", (req, res) => {
     const domain = match[1];
 
     try {
-        // 🔍 Step 1: Check if domain already exists
-        const selectStmt = conn.prepare(
-            `SELECT "email" FROM USER_WEB WHERE "website" = ? AND "id" = ?`
-        );
-        const existing = selectStmt.execute([domain, id]);
+        // 🔍 Step 1: Check if domain already exists for this user
+        const existing = await UserWeb.findOne({ website: domain, userId: userId });
 
-
-        if (existing.length > 0) {
+        if (existing) {
             // ✅ Already registered
             return res.status(200).json({
                 message: "Already registered",
                 payload: {
-                    email: existing[0].email,
+                    email: existing.email,
                     website: domain,
                 },
             });
@@ -43,29 +40,20 @@ emailRouter.post("/generate-email", (req, res) => {
         const uuid = uuidv4();
         const email = `${uuid}@maildrop.cc`;
 
-        const insertQuery = `
-            INSERT INTO USER_WEB ("id", "website", "email")
-            VALUES (?, ?, ?)
-        `;
-        const values = [[id, domain, email]];
-        const insertStmt = conn.prepare(insertQuery);
+        const newUserWeb = new UserWeb({
+            userId: userId,
+            website: domain,
+            email: email
+        });
 
-        insertStmt.execBatch(values, (dbErr) => {
-            if (dbErr) {
-                console.error("[HANA DB] Insert failed:", dbErr.message);
-                return res.status(500).json({
-                    error: "Database insert error",
-                    details: dbErr.message,
-                });
-            }
+        await newUserWeb.save();
 
-            return res.status(200).json({
-                message: "Email registered successfully",
-                payload: { email, website: domain },
-            });
+        return res.status(200).json({
+            message: "Email registered successfully",
+            payload: { email, website: domain },
         });
     } catch (err) {
-        console.error("[HANA DB] Error:", err.message);
+        console.error("[MongoDB] Error:", err.message);
         return res.status(500).json({
             error: "Internal server error",
             details: err.message,
@@ -73,28 +61,28 @@ emailRouter.post("/generate-email", (req, res) => {
     }
 });
 
-emailRouter.post("/get-email", (req, res) => {
-    const id = req.body.id;
-    console.log(id);
-    if (!id) {
-        return res.status(400).json({ error: "Missing ID parameter." });
-    }
-    const selectQuery = `
-    SELECT * FROM USER_WEB WHERE "id" = ?
-`;
+emailRouter.get("/get-emails", authenticateToken, async (req, res) => {
+    const userId = req.user.userId; // Get user ID from JWT token
+    
     try {
-        const stmt = conn.prepare(selectQuery);
-        const result = stmt.execute([id]);
+        const result = await UserWeb.find({ userId: userId }).lean();
         if (result.length > 0) {
-            res.status(200).json({ data: result });
+            // Convert MongoDB documents to response format
+            const formattedResult = result.map(doc => ({
+                userId: doc.userId,
+                website: doc.website,
+                email: doc.email,
+                createdAt: doc.createdAt
+            }));
+            res.status(200).json({ data: formattedResult });
         } else {
-            res.status(404).json({ error: "Email not found for the given website." });
+            res.status(200).json({ data: [] });
         }
     } catch (err) {
-        console.error("[HANA DB] Preparation error:", err.message);
+        console.error("[MongoDB] Error:", err.message);
         res.status(500).json({
             error: "Internal server error",
-            details: err.messages,
+            details: err.message,
         });
     }
 });

@@ -21,22 +21,81 @@
       style="display: none"
     >
       <h2>SpamSnare</h2>
-      <div class="section">
-        <p>Welcome! Create your account to get started.</p>
-        <button id="create-account-btn">Create Account</button>
+      
+      <!-- Login/Register Toggle -->
+      <div class="auth-toggle">
+        <button id="show-login-btn" class="toggle-btn active">Login</button>
+        <button id="show-register-btn" class="toggle-btn">Register</button>
       </div>
 
-      <!-- Account Creation Form -->
-      <div id="account-form" class="section" style="display: none">
-        <label for="user-name">Enter your name:</label>
-        <input
-          type="text"
-          id="user-name"
-          placeholder="Your name"
-          maxlength="50"
-        />
-        <button id="submit-account">Create Account</button>
-        <span id="account-result" class="result" aria-live="polite"></span>
+      <!-- Login Form -->
+      <div id="login-form" class="section">
+        <h3>Login to Your Account</h3>
+        <div class="form-group">
+          <label for="login-email">Email:</label>
+          <input
+            type="email"
+            id="login-email"
+            placeholder="your@email.com"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password:</label>
+          <input
+            type="password"
+            id="login-password"
+            placeholder="Your password"
+            required
+          />
+        </div>
+        <button id="submit-login">Login</button>
+        <span id="login-result" class="result" aria-live="polite"></span>
+      </div>
+
+      <!-- Register Form -->
+      <div id="register-form" class="section" style="display: none">
+        <h3>Create New Account</h3>
+        <div class="form-group">
+          <label for="register-name">Name:</label>
+          <input
+            type="text"
+            id="register-name"
+            placeholder="Your name"
+            maxlength="50"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="register-email">Email:</label>
+          <input
+            type="email"
+            id="register-email"
+            placeholder="your@email.com"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="register-password">Password:</label>
+          <input
+            type="password"
+            id="register-password"
+            placeholder="At least 6 characters"
+            minlength="6"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="register-confirm-password">Confirm Password:</label>
+          <input
+            type="password"
+            id="register-confirm-password"
+            placeholder="Confirm your password"
+            required
+          />
+        </div>
+        <button id="submit-register">Create Account</button>
+        <span id="register-result" class="result" aria-live="polite"></span>
       </div>
     </div>
 
@@ -50,8 +109,7 @@
       <div class="user-info">
         <h2>SpamSnare</h2>
         <p>
-          Welcome, <span id="user-display-name"></span>! (ID:
-          <span id="user-display-id"></span>)
+          Welcome, <span id="user-display-name"></span>!
         </p>
         <button id="logout-btn" class="logout-btn">Logout</button>
       </div>

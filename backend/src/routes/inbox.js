@@ -1,10 +1,11 @@
 const axios = require("axios");
 const { Router } = require("express");
-const { conn } = require("../config/database");
+const FlaggedSite = require("../models/FlaggedSite");
+const { authenticateToken } = require("./auth");
 
 const inboxRoute = Router();
 
-inboxRoute.post('/check-inbox', async (req, res) => {
+inboxRoute.post('/check-inbox', authenticateToken, async (req, res) => {
     const { email, website } = req.body;
 
     if (!email) {
@@ -39,22 +40,19 @@ inboxRoute.post('/check-inbox', async (req, res) => {
         }
 
         if (flag > 0 && website) {
-            const selectQuery = "SELECT * FROM FLAGGED_SITE WHERE WEBSITE_ADDRESS = ?";
-            const stmt = conn.prepare(selectQuery);
-            stmt.execute([website], function (dbErr, rows) {
-                if (dbErr) {
-                    console.error('Database select error:', dbErr.message);
-                } else if (rows.length === 0) {
-                    const insertQuery = "INSERT INTO FLAGGED_SITE (WEBSITE_ADDRESS, FLAGS, EMAIL) VALUES (?, ?, ?)";
-                    const values = [[website, flag, email]];
-                    const stmt = conn.prepare(insertQuery);
-                    stmt.execBatch(values, function (dbErr) {
-                        if (dbErr) {
-                            console.error('Database insert error:', dbErr.message);
-                        }
+            try {
+                const existingFlaggedSite = await FlaggedSite.findOne({ website_address: website });
+                if (!existingFlaggedSite) {
+                    const newFlaggedSite = new FlaggedSite({
+                        website_address: website,
+                        flags: flag,
+                        email: email
                     });
+                    await newFlaggedSite.save();
                 }
-            });
+            } catch (dbErr) {
+                console.error('Database error:', dbErr.message);
+            }
         }
 
         // Send the Maildrop API's response back to the client that visited '/'
@@ -69,7 +67,7 @@ inboxRoute.post('/check-inbox', async (req, res) => {
     }
 });
 
-inboxRoute.post('/specific-email', async (req, res) => {
+inboxRoute.post('/specific-email', authenticateToken, async (req, res) => {
     const { email, id } = req.body;
 
     if (!email || !id) {
@@ -112,19 +110,17 @@ inboxRoute.post('/check-flagged', async (req, res) => {
     const domain = match[1];
     console.log("Main domain:", domain);
 
-
-    const selectQuery = "SELECT * FROM flagged_site WHERE website_address = ?";
-    const stmt = conn.prepare(selectQuery);
-    stmt.execute([domain], function (dbErr, rows) {
-        if (dbErr) {
-            console.error('Database select error:', dbErr.message);
-            return res.status(500).json({ error: 'Database select error' });
-        } else if (rows.length === 0) {
+    try {
+        const flaggedSite = await FlaggedSite.findOne({ website_address: domain });
+        if (!flaggedSite) {
             return res.status(200).json({ flagged: false, message: 'Site is not flagged.' });
         } else {
             return res.status(200).json({ flagged: true, message: 'Site is flagged.' });
         }
-    });
+    } catch (dbErr) {
+        console.error('Database select error:', dbErr.message);
+        return res.status(500).json({ error: 'Database select error' });
+    }
 });
 
 module.exports = inboxRoute;
