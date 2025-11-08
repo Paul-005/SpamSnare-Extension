@@ -5,7 +5,6 @@ const { connect } = require('./config/database.js');
 const { authRouter } = require('./routes/auth.js');
 const emailRouter = require('./routes/email.js');
 const inboxRoute = require('./routes/inbox.js');
-const { migrationRouter } = require('./routes/migration.js');
 const cors = require('cors');
 const app = express();
 const PORT = 3000;
@@ -15,7 +14,6 @@ app.use(express.json());
 app.use("/", authRouter)
 app.use("/", emailRouter)
 app.use('/', inboxRoute)
-app.use('/', migrationRouter);
 
 // Connect to MongoDB database
 connect().then(() => {

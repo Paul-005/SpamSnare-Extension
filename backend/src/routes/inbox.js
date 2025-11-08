@@ -26,15 +26,25 @@ inboxRoute.post('/check-inbox', authenticateToken, async (req, res) => {
             }
         });
 
-        let flag = 0;
+
+        var flag = 0;
         const inbox = response.data?.data?.inbox || [];
         if (inbox.length > 0 && website) {
             const websiteLower = website.toLowerCase();
-            var api_stmp = process.env.SMTP_SERVER;
             for (const mail of inbox) {
-                if (typeof mail.headerfrom === 'string' && !mail.headerfrom.toLowerCase().includes(websiteLower)) {
-                    flag = flag + 1;
-                    console.log(`Mail from ${mail.headerfrom} not contain the website ${website}`);
+                // Extract the part just before the last dot from the website
+                const websiteParts = websiteLower.split('.');
+                let keyword = '';
+                if (websiteParts.length > 1) {
+                    keyword = websiteParts[websiteParts.length - 2];
+                } else {
+                    keyword = websiteLower;
+                }
+                if (
+                    typeof mail.headerfrom === 'string' &&
+                    !mail.headerfrom.toLowerCase().includes(keyword)
+                ) {
+                    flag = 1;
                 }
             }
         }
@@ -43,20 +53,23 @@ inboxRoute.post('/check-inbox', authenticateToken, async (req, res) => {
             try {
                 const existingFlaggedSite = await FlaggedSite.findOne({ website_address: website });
                 if (!existingFlaggedSite) {
+                    // If site is not flagged, create a new entry
                     const newFlaggedSite = new FlaggedSite({
                         website_address: website,
                         flags: flag,
                         email: email
                     });
                     await newFlaggedSite.save();
+                } else {
+                    // If site is already flagged, increment the flag count
+                    await FlaggedSite.updateOne({ website_address: website }, { $inc: { flags: 1 } });
                 }
             } catch (dbErr) {
                 console.error('Database error:', dbErr.message);
             }
         }
-
-        // Send the Maildrop API's response back to the client that visited '/'
         res.status(200).json({ email: email + "@maildrop.cc", data: response.data, flag });
+
     } catch (error) {
         console.error('Error fetching data from Maildrop.cc:', error.message);
         // Provide a more user-friendly error response

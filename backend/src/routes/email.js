@@ -22,7 +22,7 @@ emailRouter.post("/generate-email", authenticateToken, async (req, res) => {
     const domain = match[1];
 
     try {
-        // 🔍 Step 1: Check if domain already exists for this user
+        // Check if domain already exists for this user
         const existing = await UserWeb.findOne({ website: domain, userId: userId });
 
         if (existing) {
@@ -36,7 +36,7 @@ emailRouter.post("/generate-email", authenticateToken, async (req, res) => {
             });
         }
 
-        // 🆕 Step 2: Register new email
+        // Register new email
         const uuid = uuidv4();
         const email = `${uuid}@maildrop.cc`;
 
@@ -63,7 +63,7 @@ emailRouter.post("/generate-email", authenticateToken, async (req, res) => {
 
 emailRouter.get("/get-emails", authenticateToken, async (req, res) => {
     const userId = req.user.userId; // Get user ID from JWT token
-    
+
     try {
         const result = await UserWeb.find({ userId: userId }).lean();
         if (result.length > 0) {

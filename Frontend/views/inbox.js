@@ -33,7 +33,7 @@ async function getStoredUser() {
 async function checkAuth() {
     const token = await getStoredToken();
     const user = await getStoredUser();
-    
+
     if (!token || !user) {
         // Redirect to popup or show login message
         document.body.innerHTML = `
@@ -45,13 +45,13 @@ async function checkAuth() {
         `;
         return null;
     }
-    
+
     // Update user name in navbar
     const userNameElement = document.querySelector('.user-name');
     if (userNameElement) {
         userNameElement.textContent = `Welcome, ${user.name}`;
     }
-    
+
     return token;
 }
 
@@ -182,11 +182,10 @@ function renderEmails(emailData) {
                     mailbox
                 )}&id=${encodeURIComponent(
                     email.id
-                )}" style="color:inherit;text-decoration:underline;">${escapeHtml(
+                )}&flag=${flagCount > 0}" style="color:inherit;text-decoration:underline;">${escapeHtml(
                     email.subject
                 )}</a></div>
                     <div class="email-meta">
-                        <span class="email-id">ID: ${email.id}</span>
                         <span class="email-time">Just now</span>
                     </div>
                 </div>
@@ -260,7 +259,7 @@ async function refreshInbox() {
 async function logout() {
     // Clear stored authentication data
     await chrome.storage.local.remove(['spamsnare_token', 'spamsnare_user']);
-    
+
     // Show logout message and close window
     document.body.innerHTML = `
         <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column;">

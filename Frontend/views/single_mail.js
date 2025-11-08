@@ -9,8 +9,9 @@ function getQueryParam(param) {
 
 const EMAIL_ID = getQueryParam("email") || "";
 const MESSAGE_ID = getQueryParam("id") || "";
+let isFlagged = ['true', '1'].includes(getQueryParam('flag'));
 
-console.log(EMAIL_ID, MESSAGE_ID);
+console.log(EMAIL_ID, MESSAGE_ID, isFlagged);
 
 // Global state
 let currentEmail = null;
@@ -37,7 +38,7 @@ async function getStoredUser() {
 async function checkAuth() {
     const token = await getStoredToken();
     const user = await getStoredUser();
-    
+
     if (!token || !user) {
         // Redirect to popup or show login message
         document.body.innerHTML = `
@@ -49,13 +50,13 @@ async function checkAuth() {
         `;
         return null;
     }
-    
+
     // Update user name in navbar
     const userNameElement = document.querySelector('.user-name');
     if (userNameElement) {
         userNameElement.textContent = `Welcome, ${user.name}`;
     }
-    
+
     return token;
 }
 
@@ -73,6 +74,7 @@ async function fetchEmail() {
             body: JSON.stringify({
                 email: EMAIL_ID,
                 id: MESSAGE_ID,
+
             }),
         });
 
@@ -151,9 +153,15 @@ function renderEmail(emailData) {
 
     container.innerHTML = `
           <div class="email-header">
-            <h1 class="email-subject">${escapeHtml(
+            <div class="subject-line">
+                <h1 class="email-subject">${escapeHtml(
         headers.subject || "No Subject"
     )}</h1>
+                <span 
+                    class="flag-icon ${isFlagged ? "flagged" : "unflagged"}"
+                    title="${isFlagged ? "This sender is flagged as suspicious" : "This sender seems legitimate"}"
+                ></span>
+            </div>
             
             <div class="email-meta">
               <div class="meta-item">
@@ -168,33 +176,22 @@ function renderEmail(emailData) {
         headers.to || EMAIL_ID
     )}</div>
               </div>
+              ${headers.cc ? `
+              <div class="meta-item">
+                <div class="meta-label">CC</div>
+                <div class="meta-value">${escapeHtml(headers.cc)}</div>
+              </div>` : ''}
+              </div>
               <div class="meta-item">
                 <div class="meta-label">Date</div>
                 <div class="meta-value">${formatDate(headers.date || "")}</div>
               </div>
-              <div class="meta-item">
-                <div class="meta-label">Message ID</div>
-                <div class="meta-value email-id">${escapeHtml(message.id)}</div>
-              </div>
             </div>
 
-            <div class="action-buttons">
-              <button class="action-btn secondary" onclick="copyEmailId()">
-                <span>📋</span>
-                Copy ID
-              </button>
-              <button class="action-btn secondary" onclick="downloadRaw()">
-                <span>💾</span>
-                Download Raw
-              </button>
-            </div>
+            
           </div>
 
           <div class="email-content">
-            <div class="content-tabs">
-              <button class="tab-btn active" onclick="switchTab('html')">HTML Content</button>
-              <button class="tab-btn" onclick="switchTab('raw')">Raw Data</button>
-            </div>
 
             <div id="html-tab" class="tab-content active">
               <div class="html-content">
@@ -230,39 +227,10 @@ function escapeHtml(text) {
 }
 
 
-
-function copyEmailId() {
-    if (currentEmail) {
-        navigator.clipboard
-            .writeText(currentEmail.id)
-            .then(() => {
-                alert("Email ID copied to clipboard!");
-            })
-            .catch(() => {
-                alert(`Email ID: ${currentEmail.id}`);
-            });
-    }
-}
-
-function downloadRaw() {
-    if (currentEmail) {
-        const blob = new Blob([currentEmail.data], { type: "text/plain" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `email_${currentEmail.id}.txt`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-}
-
-
 async function logout() {
     // Clear stored authentication data
     await chrome.storage.local.remove(['spamsnare_token', 'spamsnare_user']);
-    
+
     // Show logout message and close window
     document.body.innerHTML = `
         <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column;">
@@ -273,8 +241,55 @@ async function logout() {
     `;
 }
 
+function addFlagStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .subject-line {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            justify-content: space-between;
+        }
+        .flag-icon {
+            font-size: 1rem;
+            cursor: default;
+            color: #ff4757;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+        .flag-icon::before {
+            content: '🛡️';
+            font-size: 1.5rem;
+            margin-right: 0.5rem;
+        }
+        .flag-icon.unflagged {
+            display: none;
+        }
+        .flag-icon.flagged::before {
+            color: #ff4757;
+            filter: drop-shadow(0 0 5px #ff4757);
+        }
+    `;
+    // Add a visible text label after the icon when flagged
+    const extra = document.createElement('style');
+    extra.textContent = `
+        .flag-icon.flagged::after {
+            content: 'Flagged';
+            margin-left: 0.35rem;
+            font-size: 0.95rem;
+            color: #ffb3b3;
+            font-weight: 700;
+        }
+    `;
+    document.head.appendChild(extra);
+    document.head.appendChild(style);
+}
+
 // Initialize the email view when page loads
 document.addEventListener("DOMContentLoaded", async function () {
+    addFlagStyles(); // Add styles to the page
+
     if (!EMAIL_ID || !MESSAGE_ID) {
         document.getElementById("emailContainer").innerHTML = `
             <div class="error-state">
@@ -287,6 +302,22 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     try {
         const emailData = await fetchEmail();
+
+        // If the API returns a flag, prefer that over the URL param.
+        // Support both top-level `flag` and nested `data.flag` from different endpoints.
+        if (emailData) {
+            const respFlag = (typeof emailData.flag !== 'undefined')
+                ? emailData.flag
+                : (emailData.data && typeof emailData.data.flag !== 'undefined')
+                    ? emailData.data.flag
+                    : null;
+
+            if (respFlag !== null) {
+                // treat 1 or '1' or true or 'true' as flagged
+                isFlagged = (Number(respFlag) === 1) || respFlag === true || respFlag === 'true';
+            }
+        }
+
         renderEmail(emailData);
     } catch (error) {
         document.getElementById("emailContainer").innerHTML = `
@@ -302,19 +333,3 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 });
 
-// Sample data for testing when API is not available
-const SAMPLE_DATA = {
-    email: "7d9b17bc-f44d-4940-b934-db4766a9832a@maildrop.cc",
-    data: {
-        data: {
-            message: {
-                id: "hZwfodhI0j",
-                html: '<html>\r\nCongratulations!<br><br>\r\nIf you are reading this your email address is working.<br><br>\r\nThis is not spam or a solicitation. This email was sent to your email address because you, or someone else, requested a test email to be sent to this address. We work hard to ensure a balance between testing, transparency, and privacy. If you did not request this email test, it\'s likely that someone accidentally mistyped their email address as yours. You can request your email address be blocked here: <a href="https://sendtestemail.com/block">https://sendtestemail.com/block</a><br><br>\r\nThe IP address of the requester of this test email is: 117.213.18.91\r\n</html>',
-                data: "Received: from mail.sendtestemail.com (mail.sendtestemail.com [143.244.187.129])\r\n        by maildrop\r\n        with SMTP (Maildrop) id MDVHHRWE\r\n        for 7d9b17bc-f44d-4940-b934-db4766a9832a@maildrop.cc;\r\n        Sun, 03 Aug 2025 09:33:36 +0000 (UTC)\r\nReceived: by mail.sendtestemail.com (Postfix, from userid 48)\r\n\tid 7442A30003F1; Sun,  3 Aug 2025 04:33:34 -0500 (CDT)\r\nTo: 7d9b17bc-f44d-4940-b934-db4766a9832a@maildrop.cc\r\nSubject: SendTestEmail.com - Testing Email ID: 04f4d6fa07d6043cdc3df7e051634472\r\nFrom: SendTestEmail <noreply@sendtestemail.com>\r\nMIME-Version: 1.0\r\nContent-Type: multipart/alternative;boundary=ste688f2cee6bee9\r\nList-Unsubscribe: <https://sendtestemail.com/block>\r\nMessage-Id: <20250803093334.7442A30003F1@mail.sendtestemail.com>\r\nDate: Sun,  3 Aug 2025 04:33:34 -0500 (CDT)",
-            },
-        },
-    },
-};
-
-// Uncomment the line below to test with sample data instead of API
-// setTimeout(() => renderEmail(SAMPLE_DATA), 1000);
