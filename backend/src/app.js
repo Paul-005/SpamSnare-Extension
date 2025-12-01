@@ -21,6 +21,9 @@ connect().then(() => {
         console.log(`Server is running on http://localhost:${PORT}`);
     });
 }).catch(err => {
-    console.error("Failed to connect to MongoDB database:", err);
     process.exit(1);
 });
+
+// Start the email fetch job
+const { job } = require('./jobs/emailFetcher');
+job.start();
