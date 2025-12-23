@@ -24,10 +24,12 @@ mongoose.connection.on('connected', () => {
 
 mongoose.connection.on('error', (err) => {
     console.error('Mongoose connection error:', err);
+    process.exit(1);
 });
 
 mongoose.connection.on('disconnected', () => {
     console.log('Mongoose disconnected');
+    process.exit(1);
 });
 
 module.exports = {

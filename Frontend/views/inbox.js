@@ -193,12 +193,6 @@ function renderEmails(emailData) {
         )
         .join("");
 
-    updateStats(emails.length, flagCount);
-}
-
-function updateStats(totalEmails, flaggedEmails) {
-    document.getElementById("totalEmails").textContent = totalEmails;
-    document.getElementById("flaggedEmails").textContent = flaggedEmails;
 }
 
 function escapeHtml(text) {

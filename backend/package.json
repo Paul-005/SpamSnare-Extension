@@ -1,7 +1,7 @@
 {
-  "name": "appwrite-express-backend",
+  "name": "spamsnare",
   "version": "1.0.0",
-  "description": "A lightweight Express backend for interacting with Appwrite.",
+  "description": "spamsnare backend",
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js"
