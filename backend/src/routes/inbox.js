@@ -1,10 +1,13 @@
 const axios = require("axios");
 const { Router } = require("express");
 const FlaggedSite = require("../models/FlaggedSite");
+const UserWeb = require("../models/UserWeb");
 const { authenticateToken } = require("./auth");
 const { verifyFlaggedEmail } = require("../job/mail_verifyer");
 
 const inboxRoute = Router();
+
+
 
 inboxRoute.post('/check-inbox', authenticateToken, async (req, res) => {
     const { email, website } = req.body;
@@ -94,6 +97,50 @@ inboxRoute.post('/specific-email', authenticateToken, async (req, res) => {
             error: 'Failed to fetch specific email from Maildrop.cc',
             details: error.response ? error.response.data : error.message
         });
+    }
+});
+
+inboxRoute.get('/all-inbox', authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const userWebs = await UserWeb.find({ userId });
+        
+        if (!userWebs.length) {
+            return res.json({ mails: [] });
+        }
+
+        const promises = userWebs.map(async (uw) => {
+            const email = uw.email.split("@")[0];
+            const url = 'https://api.maildrop.cc/graphql';
+            const data = {
+                query: `query Example { inbox(mailbox:"${email}") { id headerfrom subject } }`
+            };
+            try {
+                 const response = await axios.post(url, data, {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const inbox = response.data?.data?.inbox || [];
+                // Add receiver info and standardize
+                return inbox.map(mail => ({
+                    id: mail.id,
+                    from: mail.headerfrom,
+                    subject: mail.subject,
+                    receiver: email
+                }));
+            } catch (err) {
+                console.error(`Error fetching for ${email}`, err.message);
+                return [];
+            }
+        });
+
+        const results = await Promise.all(promises);
+        const allMails = results.flat();
+
+        res.json({ mails: allMails });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Server error' });
     }
 });
 

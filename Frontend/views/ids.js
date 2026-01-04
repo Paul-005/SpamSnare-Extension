@@ -58,7 +58,7 @@ async function populateTable() {
   emptyState.classList.add("hidden");
 
   try {
-    const response = await fetch("http://localhost:3000/all-inbox", {
+    const response = await fetch("http://localhost:3000/get-emails", {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -83,7 +83,7 @@ async function populateTable() {
     }
 
     const result = await response.json();
-    const items = result.mails;
+    const items = result.data;
     console.log(items);
 
     // Hide loading state
@@ -92,14 +92,18 @@ async function populateTable() {
     if (items && items.length > 0) {
       tbody.innerHTML = items
         .map(
-          (item) => `
+          (item, index) => `
                 <tr>
-                    <td class="website-cell">${item.from || "Unknown"}</td>
-                    <td class="email-cell">
-                        <a href="single_mail.html?email=${encodeURIComponent(item.receiver)}&id=${encodeURIComponent(item.id)}" class="email-link">
-                            ${item.subject || "No Subject"}
-                        </a>
-                    </td>
+                    <td><a href="inbox.html?email=${encodeURIComponent(
+                      (item.email || "").replace(/@maildrop\.cc.*/, "")
+                    )}&website=${encodeURIComponent(
+                  item.website
+                )}" class="website-cell">${item.website}</a></td>
+                    <td><a href="inbox.html?email=${encodeURIComponent(
+                      (item.email || "").replace(/@maildrop\.cc.*/, "")
+                    )}&website=${encodeURIComponent(
+                  item.website
+                )}" class="email-cell">${item.email}</a></td>
                 </tr>
               `
         )

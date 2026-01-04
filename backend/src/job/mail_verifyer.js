@@ -66,7 +66,7 @@ ${emailContents.join('\n')}
 ---
 
 Analyze these emails. 
-1. If the emails look like they are from random services, spam, newsletters, or totally unrelated to "${website}" and arguably shouldn't be there if the user only used it for "${website}", respond with "LEAK".
+1. If the emails look like they are from random services, spam, ads, newsletters, or totally unrelated to "${website}" and arguably shouldn't be there if the user only used it for "${website}", respond with "LEAK".
 2. If the emails look like requested OTPs, verification codes, or services the user likely signed up for (like "Verify your email for X"), respond with "USER_ACTIVITY".
 
 Respond ONLY with "LEAK" or "USER_ACTIVITY".
@@ -78,13 +78,12 @@ Respond ONLY with "LEAK" or "USER_ACTIVITY".
             }]
         };
 
-        console.log('[Verifier] Sending to Gemini...');
         const geminiResponse = await axios.post(geminiUrl, geminiBody);
         const resultText = geminiResponse.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
 
-        console.log(`[Verifier] Gemini Result: ${resultText}`);
 
         if (resultText === 'LEAK') {
+            console.log(`[Verifier] ${website} is a leak for ${website}`);
             try {
                 const existingFlaggedSite = await FlaggedSite.findOne({ website_address: website });
                 if (!existingFlaggedSite) {
@@ -94,16 +93,15 @@ Respond ONLY with "LEAK" or "USER_ACTIVITY".
                         email: email
                     });
                     await newFlaggedSite.save();
-                    console.log(`[Verifier] new flagged site created: ${website}`);
                 } else {
                     await FlaggedSite.updateOne({ website_address: website }, { $inc: { flags: 1 } });
-                    console.log(`[Verifier] Flag count incremented for: ${website}`);
                 }
             } catch (dbErr) {
                 console.error('[Verifier] Database error:', dbErr.message);
             }
-        } else {
-            console.log(`[Verifier] Classified as ${resultText}, not flagging.`);
+        }
+        if (resultText === 'USER_ACTIVITY') {
+            console.log(`[Verifier] ${website} is a user activity for ${website}`);
         }
 
     } catch (error) {

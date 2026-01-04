@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Spamsnare Console</title>
+  <title>Spamsnare - My Mail IDs</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     /* Base styles */
@@ -83,31 +83,6 @@
       font-weight: 500;
       color: #d4d4e8;
       font-size: 1rem;
-    }
-
-    .logout-btn {
-      background: rgba(255, 71, 87, 0.15);
-      border: 1px solid rgba(255, 71, 87, 0.3);
-      color: #ff758f;
-      padding: 0.65rem 1.5rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 0.95rem;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      backdrop-filter: blur(10px);
-      letter-spacing: 0.01em;
-    }
-
-    .logout-btn:hover {
-      background: rgba(255, 71, 87, 0.25);
-      border-color: rgba(255, 71, 87, 0.5);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(255, 71, 87, 0.25);
-    }
-
-    .logout-btn:active {
-      transform: translateY(0);
     }
 
     .nav-btn {
@@ -228,17 +203,6 @@
     .email-cell {
       color: #d4d4e8;
       font-weight: 400;
-    }
-
-    .email-link {
-        color: #d4d4e8;
-        text-decoration: none;
-        transition: color 0.3s ease;
-    }
-
-    .email-link:hover {
-        color: #7c9fff;
-        text-decoration: underline;
     }
 
     /* Responsive */
@@ -369,20 +333,20 @@
     </div>
     <div class="user-section">
       <span class="user-name"></span>
-      <a href="ids.html" class="nav-btn">My Mail IDs</a>
+      <a href="console.html" class="nav-btn">Back to Dash</a>
     </div>
   </nav>
 
   <!-- Main Content -->
   <div class="container">
-    <h1 class="page-title">Console Dashboard</h1>
+    <h1 class="page-title">My Mail IDs</h1>
 
     <div class="table-container">
       <table id="credentialsTable">
         <thead>
           <tr>
-            <th>From</th>
-            <th>Subject</th>
+            <th>Website</th>
+            <th>Email</th>
           </tr>
         </thead>
         <tbody id="tableBody">
@@ -407,7 +371,7 @@
     </div>
   </div>
 
-  <script src="console.js"></script>
+  <script src="ids.js"></script>
 </body>
 
 </html>
