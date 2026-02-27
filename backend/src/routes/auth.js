@@ -17,22 +17,22 @@ authRouter.post('/register', async (req, res) => {
 
     // Validation
     if (!name || !email || !password) {
-      return res.status(400).json({ 
-        message: 'Name, email, and password are required' 
+      return res.status(400).json({
+        message: 'Name, email, and password are required'
       });
     }
 
     if (password.length < 6) {
-      return res.status(400).json({ 
-        message: 'Password must be at least 6 characters long' 
+      return res.status(400).json({
+        message: 'Password must be at least 6 characters long'
       });
     }
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ 
-        message: 'User with this email already exists' 
+      return res.status(400).json({
+        message: 'User with this email already exists'
       });
     }
 
@@ -55,18 +55,18 @@ authRouter.post('/register', async (req, res) => {
 
   } catch (err) {
     console.error('Registration error:', err);
-    
+
     if (err.code === 11000) {
-      return res.status(400).json({ 
-        message: 'User with this email already exists' 
+      return res.status(400).json({
+        message: 'User with this email already exists'
       });
     }
-    
+
     if (err.name === 'ValidationError') {
       const errors = Object.values(err.errors).map(e => e.message);
-      return res.status(400).json({ 
-        message: 'Validation error', 
-        errors 
+      return res.status(400).json({
+        message: 'Validation error',
+        errors
       });
     }
 
@@ -84,24 +84,24 @@ authRouter.post('/login', async (req, res) => {
 
     // Validation
     if (!email || !password) {
-      return res.status(400).json({ 
-        message: 'Email and password are required' 
+      return res.status(400).json({
+        message: 'Email and password are required'
       });
     }
 
     // Find user by email
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ 
-        message: 'Invalid email or password' 
+      return res.status(401).json({
+        message: 'Invalid email or password'
       });
     }
 
     // Check password
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
-      return res.status(401).json({ 
-        message: 'Invalid email or password' 
+      return res.status(401).json({
+        message: 'Invalid email or password'
       });
     }
 

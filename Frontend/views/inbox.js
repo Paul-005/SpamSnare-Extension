@@ -124,7 +124,6 @@ function renderEmails(emailData) {
                         <p>Your inbox is empty or there was an issue loading emails.</p>
                     </div>
                 `;
-        updateStats(0, 0);
         return;
     }
 
@@ -139,7 +138,6 @@ function renderEmails(emailData) {
                         <p>Your inbox is currently empty.</p>
                     </div>
                 `;
-        updateStats(0, flagCount);
         return;
     }
 
