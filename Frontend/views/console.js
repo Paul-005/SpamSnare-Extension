@@ -20,25 +20,26 @@ async function getStoredUser() {
 async function checkAuth() {
   const token = await getStoredToken();
   const user = await getStoredUser();
-  
+
   if (!token || !user) {
     // Redirect to popup or show login message
     document.body.innerHTML = `
       <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column;">
         <h2>Authentication Required</h2>
         <p>Please login through the SpamSnare extension popup first.</p>
-        <button onclick="window.close()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #4a9eff; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
+        <button id="closeWindowBtn" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #4a9eff; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
       </div>
     `;
+    document.getElementById("closeWindowBtn").addEventListener("click", () => window.close());
     return null;
   }
-  
+
   // Update user name in navbar
   const userNameElement = document.querySelector('.user-name');
   if (userNameElement) {
     userNameElement.textContent = `Welcome, ${user.name}`;
   }
-  
+
   return token;
 }
 
@@ -74,9 +75,10 @@ async function populateTable() {
           <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column;">
             <h2>Session Expired</h2>
             <p>Please login again through the SpamSnare extension popup.</p>
-            <button onclick="window.close()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #4a9eff; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
+            <button id="closeWindowBtn" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #4a9eff; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
           </div>
         `;
+        document.getElementById("closeWindowBtn").addEventListener("click", () => window.close());
         return;
       }
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -129,16 +131,21 @@ async function populateTable() {
 async function logout() {
   // Clear stored authentication data
   await chrome.storage.local.remove(['spamsnare_token', 'spamsnare_user']);
-  
+
   // Show logout message and close window
   document.body.innerHTML = `
     <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column;">
       <h2>Logged Out</h2>
       <p>You have been successfully logged out.</p>
-      <button onclick="window.close()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #4a9eff; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
+      <button id="closeWindowBtn" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #4a9eff; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
     </div>
   `;
+  document.getElementById("closeWindowBtn").addEventListener("click", () => window.close());
 }
 
 // Initialize the table when the DOM is fully loaded
-document.addEventListener("DOMContentLoaded", populateTable);
+document.addEventListener("DOMContentLoaded", () => {
+  populateTable();
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) logoutBtn.addEventListener("click", logout);
+});

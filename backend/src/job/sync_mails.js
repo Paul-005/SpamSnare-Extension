@@ -6,7 +6,6 @@ const User = require('../models/User');
 const UserWeb = require('../models/UserWeb');
 const FlaggedSite = require('../models/FlaggedSite');
 
-const cron = require('node-cron');
 
 
 const syncMails = async () => {

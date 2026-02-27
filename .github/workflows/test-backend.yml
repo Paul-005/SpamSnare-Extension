@@ -1,0 +1,69 @@
+name: Backend Test
+
+on:
+  push:
+    branches: [ "*" ]
+  pull_request:
+    branches: [ "*" ]
+
+jobs:
+  test-server:
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "echo 'db.runCommand({ping: 1})' | mongosh --quiet"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        
+    - name: Install dependencies
+      run: npm install
+      working-directory: ./backend
+      
+    - name: Create .env file for testing
+      working-directory: ./backend
+      run: |
+        echo "MONGODB_URI=mongodb://127.0.0.1:27017/spamsnare_test" > .env
+        echo "JWT_SECRET=super_secret_test_key_123" >> .env
+        echo "GEMINI_API_KEY=dummy_gemini_key" >> .env
+        
+    - name: Start Server and Verify Running Status
+      working-directory: ./backend
+      run: |
+        # Start server in background and redirect output to log file
+        npm start > server.log 2>&1 &
+        SERVER_PID=$!
+        
+        echo "Waiting for server to start..."
+        
+        # Wait up to 30 seconds for the success string to appear in the log
+        timeout 30 bash -c 'until grep -q "Server is running on http://localhost" server.log; do sleep 1; done'
+        RESULT=$?
+        
+        if [ $RESULT -eq 0 ]; then
+          echo "✅ Server started successfully!"
+          # Display the output to verify MongoDB connected as well
+          cat server.log
+          # Cleanly kill the server
+          kill $SERVER_PID
+          exit 0
+        else
+          echo "❌ Server failed to start or timed out. Log output:"
+          cat server.log
+          kill $SERVER_PID || true
+          exit 1
+        fi

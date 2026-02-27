@@ -101,6 +101,31 @@
       display: inline-block;
     }
 
+    .logout-btn {
+      background: rgba(255, 71, 87, 0.15);
+      border: 1px solid rgba(255, 71, 87, 0.3);
+      color: #ff758f;
+      padding: 0.65rem 1.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(10px);
+      letter-spacing: 0.01em;
+    }
+
+    .logout-btn:hover {
+      background: rgba(255, 71, 87, 0.25);
+      border-color: rgba(255, 71, 87, 0.5);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 71, 87, 0.25);
+    }
+
+    .logout-btn:active {
+      transform: translateY(0);
+    }
+
     .nav-btn:hover {
       background: rgba(102, 126, 234, 0.25);
       border-color: rgba(102, 126, 234, 0.5);
@@ -334,6 +359,7 @@
     <div class="user-section">
       <span class="user-name"></span>
       <a href="console.html" class="nav-btn">Back to Dash</a>
+      <button id="logoutBtn" class="logout-btn">Logout</button>
     </div>
   </nav>
 

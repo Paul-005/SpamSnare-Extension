@@ -40,9 +40,10 @@ async function checkAuth() {
             <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column;">
                 <h2>Authentication Required</h2>
                 <p>Please login through the SpamSnare extension popup first.</p>
-                <button onclick="window.close()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #4a9eff; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
+                <button id="closeWindowBtn" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #4a9eff; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
             </div>
         `;
+        document.getElementById("closeWindowBtn").addEventListener("click", () => window.close());
         return null;
     }
 
@@ -77,9 +78,10 @@ async function fetchInbox() {
                     <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column;">
                         <h2>Session Expired</h2>
                         <p>Please login again through the SpamSnare extension popup.</p>
-                        <button onclick="window.close()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #4a9eff; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
+                        <button id="closeWindowBtn" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #4a9eff; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
                     </div>
                 `;
+                document.getElementById("closeWindowBtn").addEventListener("click", () => window.close());
                 return null;
             }
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -236,11 +238,12 @@ async function refreshInbox() {
                         <h3>Error loading emails</h3>
                         <p>Failed to fetch emails from the server.</p>
                         <p style="font-size: 0.9rem; margin-top: 1rem;">Error: ${error.message}</p>
-                        <button onclick="refreshInbox()" style="margin-top: 1rem; background: #ff4757; border: none; color: white; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">
+                        <button id="retryBtn" style="margin-top: 1rem; background: #ff4757; border: none; color: white; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">
                             Try Again
                         </button>
                     </div>
                 `;
+        document.getElementById("retryBtn").addEventListener("click", refreshInbox);
     } finally {
         // Re-enable refresh button
         refreshBtn.disabled = false;
@@ -257,13 +260,20 @@ async function logout() {
         <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column;">
             <h2>Logged Out</h2>
             <p>You have been successfully logged out.</p>
-            <button onclick="window.close()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #4a9eff; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
+            <button id="closeWindowBtn" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #4a9eff; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
         </div>
     `;
+    document.getElementById("closeWindowBtn").addEventListener("click", () => window.close());
 }
 
 // Initialize the inbox when page loads
 document.addEventListener("DOMContentLoaded", function () {
+    const refreshBtn = document.getElementById("refreshBtn");
+    if (refreshBtn) refreshBtn.addEventListener("click", refreshInbox);
+
+    const logoutBtn = document.getElementById("logoutBtn");
+    if (logoutBtn) logoutBtn.addEventListener("click", logout);
+
     refreshInbox();
 
     // Auto-refresh every 30 seconds
