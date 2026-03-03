@@ -53,6 +53,34 @@ The server will be running on `http://localhost:3000`.
 
 ---
 
+## 🐳 Docker Deployment
+
+SpamSnare Backend is containerized and available on Docker Hub. You can pull the latest image and run it with minimal configuration.
+
+### 🌐 Docker Hub
+The official image can be found here: [paulbchv/spamsnare](https://hub.docker.com/r/paulbchv/spamsnare)
+
+### 🚀 Running with Docker
+You can run the backend container using the following command (replace with your actual credentials):
+
+```bash
+docker run -p 3000:3000 \
+  -e MONGODB_URI="your_mongodb_uri" \
+  -e GEMINI_API_KEY="your_gemini_api_key" \
+  -e JWT_SECRET="your_jwt_secret" \
+  paulbchv/spamsnare
+```
+
+### 🛠️ Running with Docker Compose
+To run using the local `docker-compose.yml` file:
+```bash
+docker-compose up --build
+```
+This will automatically load environment variables from the `backend/.env` file.
+
+---
+
+
 ## 🧩 Chrome Extension (Frontend) Setup
 
 The frontend is a Chrome extension that interacts with the backend to generate emails and show flagged sites.
