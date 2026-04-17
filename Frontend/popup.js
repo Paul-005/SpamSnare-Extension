@@ -350,10 +350,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
           }
           if (fillResp && fillResp.success) {
-            emailResult.textContent = 'Email inserted and auto-hidden!';
+            emailResult.textContent = 'Email inserted successfully!';
             emailResult.className = 'result success';
             hideCopyFallback();
-            // Email hiding is automatically triggered in content.js
           } else {
             emailResult.textContent = 'Auto-fill failed. Copy email below:';
             emailResult.className = 'result error';
