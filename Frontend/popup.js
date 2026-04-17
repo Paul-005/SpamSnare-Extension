@@ -34,6 +34,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const emailResult = document.getElementById('email-result');
   const openInboxBtn = document.getElementById('open-inbox');
 
+  // Copy fallback elements
+  const copyFallback = document.getElementById('copy-fallback');
+  const copyEmailField = document.getElementById('copy-email-field');
+  const copyEmailBtn = document.getElementById('copy-email-btn');
+  const copyStatus = document.getElementById('copy-status');
+
   // Check authentication status on load
   checkAuthStatus();
 
@@ -277,34 +283,81 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Helper: show copy fallback with the email
+  function showCopyFallback(email) {
+    copyFallback.style.display = 'block';
+    copyEmailField.value = email;
+    copyStatus.textContent = '';
+    copyEmailBtn.classList.remove('copied');
+  }
+
+  // Helper: hide copy fallback
+  function hideCopyFallback() {
+    copyFallback.style.display = 'none';
+    copyEmailField.value = '';
+    copyStatus.textContent = '';
+    copyEmailBtn.classList.remove('copied');
+  }
+
+  // Copy button handler
+  copyEmailBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(copyEmailField.value);
+      copyEmailBtn.classList.add('copied');
+      copyStatus.textContent = '✓ Copied! Paste it into the email field.';
+      setTimeout(() => {
+        copyEmailBtn.classList.remove('copied');
+        copyStatus.textContent = '';
+      }, 3000);
+    } catch (err) {
+      // Fallback for older browsers
+      copyEmailField.select();
+      document.execCommand('copy');
+      copyEmailBtn.classList.add('copied');
+      copyStatus.textContent = '✓ Copied! Paste it into the email field.';
+      setTimeout(() => {
+        copyEmailBtn.classList.remove('copied');
+        copyStatus.textContent = '';
+      }, 3000);
+    }
+  });
+
   // Generating and inserting email
   generateEmailBtn.addEventListener('click', () => {
     emailResult.textContent = 'Generating...';
+    emailResult.className = 'result loading';
+    hideCopyFallback();
     getCurrentTab((tab) => {
       if (!tab || !tab.id || !tab.url) {
         emailResult.textContent = 'Could not get site info.';
+        emailResult.className = 'result error';
         return;
       }
       // Step 1: Get email from backend
       chrome.runtime.sendMessage({ action: 'generateEmail', url: tab.url }, (response) => {
         if (chrome.runtime.lastError || !response || !response.email) {
           emailResult.textContent = 'Error generating email.';
+          emailResult.className = 'result error';
           return;
         }
         const email = response.email;
         // Step 2: Try to fill email field in the page
         chrome.tabs.sendMessage(tab.id, { action: 'fillEmailField', email }, (fillResp) => {
           if (chrome.runtime.lastError) {
-            emailResult.textContent = 'Could not access page.';
+            emailResult.textContent = 'Could not access page. Copy email below:';
+            emailResult.className = 'result error';
+            showCopyFallback(email);
             return;
           }
           if (fillResp && fillResp.success) {
             emailResult.textContent = 'Email inserted and auto-hidden!';
+            emailResult.className = 'result success';
+            hideCopyFallback();
             // Email hiding is automatically triggered in content.js
-          } else if (fillResp && fillResp.reason) {
-            emailResult.textContent = 'Failed: ' + fillResp.reason;
           } else {
-            emailResult.textContent = 'Failed to insert email.';
+            emailResult.textContent = 'Auto-fill failed. Copy email below:';
+            emailResult.className = 'result error';
+            showCopyFallback(email);
           }
         });
       });
