@@ -42,16 +42,39 @@ async function fillEmailField(email, options = {}) {
     // Form fields in common containers
     '.email input, .mail input, .login input',
     '[class*="email"] input, [class*="mail"] input',
-    '[data-testid*="email"] input, [data-cy*="email"] input'
+    '[data-testid*="email"] input, [data-cy*="email"] input',
+
+    // Additional broad selectors
+    '[name="identifier"]',
+    'input[name="ID" i]',
+    'input[class*="username" i]',
+    '#email', '#username', '#userid', '#login_id',
+
+    // Amazon-specific selectors
+    'input[name="ap_email"]',
+    'input[name="ap_email_login"]',
+    '#ap_email',
+
+    // Other common site-specific patterns
+    'input[name*="loginfmt" i]',
+    'input[name*="session\\[email\\]" i]',
+    'input[name*="emailAddress" i]',
+    'input[name*="login_email" i]',
+    'input[name*="customer_email" i]',
+    'input[name*="signin" i]:not([type="password"])',
+    'input[formcontrolname*="email" i]',
+    'input[formcontrolname*="user" i]'
   ];
 
   // Check if element is truly visible and interactable
   function isElementVisible(element) {
-    if (!element || !element.offsetParent) return false;
+    if (!element) return false;
 
     const rect = element.getBoundingClientRect();
     const style = window.getComputedStyle(element);
 
+    // offsetParent is null for fixed/absolute/sticky positioned ancestors (common on Amazon, Google, etc.)
+    // So we only use rect + computed style checks
     return (
       rect.width > 0 &&
       rect.height > 0 &&
@@ -65,7 +88,7 @@ async function fillEmailField(email, options = {}) {
 
   // Enhanced email field detection
   function isLikelyEmailField(input) {
-    if (!input || input.type === 'password') return false;
+    if (!input || input.type === 'password' || input.type === 'hidden' || input.type === 'submit' || input.type === 'button' || input.type === 'checkbox' || input.type === 'radio') return false;
 
     const attributes = [
       input.name || '',
@@ -75,26 +98,52 @@ async function fillEmailField(email, options = {}) {
       input.getAttribute('data-testid') || '',
       input.getAttribute('data-cy') || '',
       input.getAttribute('aria-label') || '',
-      input.autocomplete || ''
+      input.getAttribute('aria-labelledby') || '',
+      input.autocomplete || '',
+      input.getAttribute('formcontrolname') || ''
     ].join(' ').toLowerCase();
+
+    // Also check associated <label> text and parent container
+    let labelText = '';
+    try {
+      if (input.id) {
+        const label = document.querySelector(`label[for="${input.id}"]`);
+        if (label) labelText = label.textContent.toLowerCase();
+      }
+      // Check closest parent for context clues
+      const parent = input.closest('.form-group, .field, .input-group, .form-field, .form-row, .a-form-group, fieldset, [class*="form"]');
+      if (parent) {
+        const parentLabel = parent.querySelector('label, .label, legend');
+        if (parentLabel) labelText += ' ' + parentLabel.textContent.toLowerCase();
+      }
+    } catch (e) { }
+
+    const combinedText = (attributes + ' ' + labelText).toLowerCase();
 
     // Strong email indicators
     const strongIndicators = [
-      'email', 'mail', '@', 'user', 'login', 'account', 'signin', 'signup'
+      'email', 'e-mail', 'mail', '@', 'user', 'login', 'account', 'signin', 'signup',
+      'username', 'userid', 'identifier', 'identity', 'ap_email', 'loginfmt',
+      'emailaddress', 'customer_email', 'login_email'
     ];
 
     // Exclude password-related fields
     const excludeIndicators = [
-      'password', 'pass', 'pwd', 'confirm', 'repeat', 'phone', 'mobile'
+      'password', 'pass', 'pwd', 'confirm', 'repeat', 'phone', 'mobile',
+      'search', 'query', 'coupon', 'promo', 'zip', 'postal', 'address_line',
+      'first_name', 'last_name', 'city', 'state', 'country', 'card'
     ];
 
     const hasStrongIndicator = strongIndicators.some(indicator =>
-      attributes.includes(indicator)
+      combinedText.includes(indicator)
     );
 
     const hasExcludeIndicator = excludeIndicators.some(indicator =>
-      attributes.includes(indicator)
+      combinedText.includes(indicator)
     );
+
+    // Also return true if input type is email (always a strong signal)
+    if (input.type === 'email') return true;
 
     return hasStrongIndicator && !hasExcludeIndicator;
   }
@@ -119,6 +168,9 @@ async function fillEmailField(email, options = {}) {
     if (attributes.includes('mail')) score += 30;
     if (attributes.includes('user')) score += 20;
     if (attributes.includes('login')) score += 15;
+    if (attributes.includes('identifier')) score += 20;
+    if (attributes.includes('ap_email')) score += 45;
+    if (attributes.includes('loginfmt')) score += 45;
 
     // Visibility scoring
     if (isElementVisible(input)) score += 20;
@@ -131,27 +183,49 @@ async function fillEmailField(email, options = {}) {
     return score;
   }
 
-  // Find email fields in all documents (including iframes)
+  // Find email fields in all documents (including iframes and shadow DOMs)
   function findEmailFields(doc = document) {
     const fields = [];
 
-    // Try all selectors
-    emailSelectors.forEach(selector => {
+    function searchInNode(node, sourceContext) {
+      if (!node || !node.querySelectorAll) return;
+
+      // Try all selectors
+      emailSelectors.forEach(selector => {
+        try {
+          const elements = node.querySelectorAll(selector);
+          elements.forEach(el => {
+            if (el.tagName === 'INPUT' && isLikelyEmailField(el)) {
+              // Avoid duplicates
+              if (!fields.some(f => f.element === el)) {
+                fields.push({
+                  element: el,
+                  score: scoreEmailField(el),
+                  source: sourceContext
+                });
+              }
+            }
+          });
+        } catch (e) {
+          // Ignore selector errors
+        }
+      });
+
+      // Search shadow DOMs
       try {
-        const elements = doc.querySelectorAll(selector);
-        elements.forEach(el => {
-          if (el.tagName === 'INPUT' && isLikelyEmailField(el)) {
-            fields.push({
-              element: el,
-              score: scoreEmailField(el),
-              source: 'main'
-            });
+        const allElements = node.querySelectorAll('*');
+        allElements.forEach(el => {
+          if (el.shadowRoot) {
+            searchInNode(el.shadowRoot, 'shadow');
           }
         });
       } catch (e) {
-        // Ignore selector errors
+        // Ignore errors walking DOM
       }
-    });
+    }
+
+    // Search main document
+    searchInNode(doc, 'main');
 
     // Also check iframes if enabled
     if (includeFrames && doc === document) {
@@ -206,21 +280,49 @@ async function fillEmailField(email, options = {}) {
 
       // Focus the field first
       input.focus();
+      try {
+        input.select(); // Select existing text to overwrite it
+      } catch (e) { }
 
-      // Clear existing value
-      input.value = '';
+      // Try using execCommand for trusted events (works on many sites that block synthetic events like NYTimes)
+      let execSuccess = false;
+      try {
+        execSuccess = document.execCommand('insertText', false, email);
+      } catch (e) { }
 
-      // Set the value
-      input.value = email;
+      // If execCommand failed or is not supported, fallback to native React value setter
+      if (!execSuccess || input.value !== email) {
+        const setNativeValue = (element, value) => {
+          const valueSetter = Object.getOwnPropertyDescriptor(element, 'value')?.set;
+          const prototype = Object.getPrototypeOf(element);
+          const prototypeValueSetter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
+
+          if (prototypeValueSetter && valueSetter !== prototypeValueSetter) {
+            prototypeValueSetter.call(element, value);
+          } else if (valueSetter) {
+            valueSetter.call(element, value);
+          } else {
+            element.value = value;
+          }
+        };
+
+        // Clear existing bypass tracking
+        setNativeValue(input, '');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+
+        // Set new value
+        setNativeValue(input, email);
+      }
 
       // Trigger comprehensive events
       const events = [
         new Event('focus', { bubbles: true }),
+        new MouseEvent('click', { bubbles: true }),
         new Event('input', { bubbles: true, cancelable: true }),
         new Event('change', { bubbles: true, cancelable: true }),
         new Event('blur', { bubbles: true }),
-        new KeyboardEvent('keydown', { bubbles: true, cancelable: true }),
-        new KeyboardEvent('keyup', { bubbles: true, cancelable: true })
+        new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Enter' }),
+        new KeyboardEvent('keyup', { bubbles: true, cancelable: true, key: 'Enter' })
       ];
 
       events.forEach(event => {
@@ -241,7 +343,7 @@ async function fillEmailField(email, options = {}) {
       }, 50);
 
       // Wait a moment for the value to be processed by frameworks
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise(resolve => setTimeout(resolve, 250));
 
       // Simple check: if the field has any content and it changed from original
       const currentValue = input.value;
@@ -352,271 +454,12 @@ async function autoFillEmail(email, options = {}) {
 }
 
 
-// Email hiding functionality
-let hiddenEmails = new Set();
-let emailObserver = null;
-let hiddenInputs = new Map(); // Track inputs with hidden emails
-
-// Function to visually hide email in input while preserving the actual value
-function hideInputVisually(input, email) {
-  // Skip if already hidden
-  if (input.dataset.spamsnareHidden === 'true') {
-    return;
-  }
-  
-  // Mark as hidden
-  input.dataset.spamsnareHidden = 'true';
-  
-  // Store original value and email
-  const originalValue = input.value;
-  hiddenInputs.set(input, { originalValue, email });
-  
-  // Simple approach: Use CSS text-security to hide characters
-  // This preserves the actual value while making it visually hidden
-  input.style.webkitTextSecurity = 'disc';
-  input.style.textSecurity = 'disc';
-  input.style.fontFamily = 'monospace';
-  input.style.color = '#999';
-  input.style.fontSize = '14px';
-  
-  // Add a subtle indicator that this is hidden
-  input.style.backgroundColor = '#f9f9f9';
-  input.style.border = '1px dashed #ccc';
-  
-  // Add tooltip to indicate hidden email
-  input.title = 'Email address is hidden for privacy';
-  
-  // Prevent user from editing the hidden email
-  input.readOnly = true;
-  
-  // Remove hiding when input is focused (for form interaction)
-  input.addEventListener('focus', () => {
-    input.style.webkitTextSecurity = '';
-    input.style.textSecurity = '';
-    input.style.color = '';
-    input.style.backgroundColor = '';
-    input.style.border = '';
-    input.readOnly = false;
-  });
-  
-  // Restore hiding when input loses focus
-  input.addEventListener('blur', () => {
-    // Only restore hiding if the value is still a maildrop.cc email
-    if (input.value.includes('maildrop.cc')) {
-      input.style.webkitTextSecurity = 'disc';
-      input.style.textSecurity = 'disc';
-      input.style.color = '#999';
-      input.style.backgroundColor = '#f9f9f9';
-      input.style.border = '1px dashed #ccc';
-      input.readOnly = true;
-      
-      // Update stored value
-      const data = hiddenInputs.get(input);
-      if (data) {
-        data.originalValue = input.value;
-      }
-    } else {
-      // If user changed to non-maildrop email, remove hiding
-      input.dataset.spamsnareHidden = 'false';
-      hiddenInputs.delete(input);
-    }
-  });
-}
-
-// Function to hide maildrop.cc emails from the page
-function hideMaildropEmails(emailToHide = null) {
-  // If specific email provided, add to hidden set
-  if (emailToHide && emailToHide.includes('maildrop.cc')) {
-    hiddenEmails.add(emailToHide);
-  }
-
-  // Find all text nodes containing maildrop.cc emails
-  const walker = document.createTreeWalker(
-    document.body,
-    NodeFilter.SHOW_TEXT,
-    {
-      acceptNode: function (node) {
-        // Skip script and style elements
-        const parent = node.parentElement;
-        if (parent && (parent.tagName === 'SCRIPT' || parent.tagName === 'STYLE')) {
-          return NodeFilter.FILTER_REJECT;
-        }
-        return NodeFilter.FILTER_ACCEPT;
-      }
-    }
-  );
-
-  const textNodes = [];
-  let node;
-  while (node = walker.nextNode()) {
-    if (node.textContent.includes('maildrop.cc')) {
-      textNodes.push(node);
-    }
-  }
-
-  // Process each text node
-  textNodes.forEach(textNode => {
-    let content = textNode.textContent;
-    let modified = false;
-
-    // Hide all maildrop.cc emails or specific ones
-    const emailRegex = /[a-zA-Z0-9._%+-]+@maildrop\.cc/g;
-    const matches = content.match(emailRegex);
-
-    if (matches) {
-      matches.forEach(email => {
-        // If no specific email to hide, hide all maildrop.cc emails
-        // If specific email provided, only hide that one
-        if (!emailToHide || hiddenEmails.has(email)) {
-          // Replace with placeholder or hide completely
-          content = content.replace(email, '[Hidden Email]');
-          modified = true;
-        }
-      });
-    }
-
-    if (modified) {
-      textNode.textContent = content;
-    }
-  });
-
-  // Hide emails in input fields using visual techniques while preserving actual values
-  const inputs = document.querySelectorAll('input[type="email"], input[type="text"], input:not([type])');
-  inputs.forEach(input => {
-    if (input.value && input.value.includes('maildrop.cc')) {
-      const emailRegex = /[a-zA-Z0-9._%+-]+@maildrop\.cc/g;
-      const matches = input.value.match(emailRegex);
-      
-      if (matches) {
-        matches.forEach(email => {
-          if (!emailToHide || hiddenEmails.has(email)) {
-            // Store the real email value
-            input.dataset.realEmail = input.value;
-            
-            // Create visual hiding without changing the actual value
-            hideInputVisually(input, email);
-          }
-        });
-      }
-    }
-  });
-}
-
-// Function to start monitoring for new maildrop.cc emails
-function startEmailHiding() {
-  // Initial hiding
-  hideMaildropEmails();
-
-  // Set up mutation observer to watch for new content
-  if (emailObserver) {
-    emailObserver.disconnect();
-  }
-
-  emailObserver = new MutationObserver(function (mutations) {
-    let shouldCheck = false;
-
-    mutations.forEach(function (mutation) {
-      // Check if new nodes were added
-      if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-        shouldCheck = true;
-      }
-      // Check if text content changed
-      if (mutation.type === 'characterData') {
-        shouldCheck = true;
-      }
-    });
-
-    if (shouldCheck) {
-      // Debounce the hiding function
-      setTimeout(() => hideMaildropEmails(), 100);
-    }
-  });
-
-  // Start observing
-  emailObserver.observe(document.body, {
-    childList: true,
-    subtree: true,
-    characterData: true
-  });
-}
-
-// Function to stop email hiding
-function stopEmailHiding() {
-  if (emailObserver) {
-    emailObserver.disconnect();
-    emailObserver = null;
-  }
-  hiddenEmails.clear();
-}
-
-// Function to ensure real email values are preserved during form submission
-function setupFormSubmissionHandling() {
-  // Handle form submissions to restore real email values
-  document.addEventListener('submit', (event) => {
-    const form = event.target;
-    if (form.tagName === 'FORM') {
-      // Temporarily restore real values for hidden inputs in this form
-      const formInputs = form.querySelectorAll('input');
-      formInputs.forEach(input => {
-        if (hiddenInputs.has(input)) {
-          const data = hiddenInputs.get(input);
-          // Ensure the real email value is set for form submission
-          input.value = data.originalValue;
-        }
-      });
-    }
-  }, true); // Use capture phase to ensure this runs before other handlers
-  
-  // Also handle AJAX form submissions by monitoring input changes
-  document.addEventListener('change', (event) => {
-    const input = event.target;
-    if (input.tagName === 'INPUT' && hiddenInputs.has(input)) {
-      // If user manually changes the input, update our stored value
-      const data = hiddenInputs.get(input);
-      if (input.value !== '[Hidden Email]') {
-        data.originalValue = input.value;
-      }
-    }
-  });
-}
-
-// Auto-start email hiding when page loads
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-      startEmailHiding();
-      setupFormSubmissionHandling();
-    }, 1000); // Wait 1 second after DOM is ready
-  });
-} else {
-  // DOM is already ready
-  setTimeout(() => {
-    startEmailHiding();
-    setupFormSubmissionHandling();
-  }, 1000);
-}
-
-// Also start hiding when page is fully loaded (for dynamic content)
-window.addEventListener('load', () => {
-  setTimeout(() => {
-    startEmailHiding();
-  }, 2000); // Wait 2 seconds after full page load
-});
-
 // Listen for messages from popup/background
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'fillEmailField') {
     // Handle async function properly
     fillEmailField(request.email)
       .then(result => {
-        // If email was filled successfully and it's a maildrop.cc email, hide it immediately
-        if (result.success && request.email && request.email.includes('maildrop.cc')) {
-          setTimeout(() => {
-            hideMaildropEmails(request.email);
-            // Ensure hiding is active
-            startEmailHiding();
-          }, 200); // Reduced delay for immediate hiding
-        }
         sendResponse(result);
       })
       .catch(error => {

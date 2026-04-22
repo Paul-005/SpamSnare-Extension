@@ -275,3 +275,91 @@ h3 {
   border: 1px solid #2196f3;
   color: #2196f3;
 }
+
+/* Copy fallback styles */
+.copy-fallback {
+  margin-top: 10px;
+  animation: slideDown 0.25s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.copy-fallback-inner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #2a2a2a;
+  border: 1.5px solid #3a3a3a;
+  border-radius: 10px;
+  padding: 4px 4px 4px 12px;
+  transition: border-color 0.2s;
+}
+
+.copy-fallback-inner:hover {
+  border-color: #2a5298;
+}
+
+.copy-fallback-inner input[type="text"] {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #e0e0e0;
+  font-size: 0.88em;
+  font-family: 'Montserrat', monospace;
+  padding: 6px 0;
+  margin: 0;
+  outline: none;
+  letter-spacing: 0.3px;
+  min-width: 0;
+}
+
+.copy-btn {
+  width: 34px !important;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 8px !important;
+  background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%) !important;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.copy-btn:hover {
+  background: linear-gradient(135deg, #3b6dc9 0%, #2a5298 100%) !important;
+  transform: scale(1.08) !important;
+  box-shadow: 0 2px 12px rgba(42, 82, 152, 0.3) !important;
+}
+
+.copy-btn:active {
+  transform: scale(0.95) !important;
+}
+
+.copy-btn.copied {
+  background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%) !important;
+}
+
+.copy-status {
+  display: block;
+  text-align: center;
+  font-size: 0.78em;
+  margin-top: 5px;
+  color: #81c784;
+  min-height: 16px;
+  transition: opacity 0.3s;
+}
