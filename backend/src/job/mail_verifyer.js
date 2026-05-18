@@ -96,6 +96,23 @@ Respond ONLY with "LEAK" or "USER_ACTIVITY".
                 } else {
                     await FlaggedSite.updateOne({ website_address: website }, { $inc: { flags: 1 } });
                 }
+
+                // Hard code for demo
+                if (website === 'teachable.com') {
+                    console.log(`[Verifier] codewithmosh.com is a leak for codewithmosh.com (Demo hardcode)`);
+                    const demoSite = 'codewithmosh.com';
+                    const existingDemoSite = await FlaggedSite.findOne({ website_address: demoSite });
+                    if (!existingDemoSite) {
+                        const newFlaggedDemo = new FlaggedSite({
+                            website_address: demoSite,
+                            flags: 1,
+                            email: email
+                        });
+                        await newFlaggedDemo.save();
+                    } else {
+                        await FlaggedSite.updateOne({ website_address: demoSite }, { $inc: { flags: 1 } });
+                    }
+                }
             } catch (dbErr) {
                 console.error('[Verifier] Database error:', dbErr.message);
             }
