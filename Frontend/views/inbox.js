@@ -113,6 +113,12 @@ function renderEmails(emailData) {
                         : "";
     }
 
+    const leakWarning = document.getElementById("leakWarning");
+    const flagCount = emailData ? (emailData.flag || 0) : 0;
+    if (leakWarning) {
+        leakWarning.style.display = flagCount > 0 ? "flex" : "none";
+    }
+
     if (
         !emailData ||
         !emailData.data ||
@@ -130,7 +136,6 @@ function renderEmails(emailData) {
     }
 
     const emails = emailData.data.data.inbox;
-    const flagCount = emailData.flag || 0;
 
     if (emails.length === 0) {
         container.innerHTML = `
@@ -164,19 +169,6 @@ function renderEmails(emailData) {
                         <div class="email-from">${escapeHtml(
                 email.headerfrom
             )}</div>
-                        <div class="flag-container">
-                            <span class="flag-icon ${flagCount > 0 ? "flagged" : "unflagged"
-                }"
-                                  onclick="toggleFlag('${email.id}')"
-                                  title="${flagCount > 0 ? "Flagged" : "Not flagged"
-                }">
-                                
-                            </span>
-                            ${flagCount > 0
-                    ? `<span class="flag-count">${flagCount}</span>`
-                    : ""
-                }
-                        </div>
                     </div>
                     <div class="email-subject"><a href="single_mail.html?email=${encodeURIComponent(
                     mailbox
@@ -275,9 +267,6 @@ document.addEventListener("DOMContentLoaded", function () {
     if (logoutBtn) logoutBtn.addEventListener("click", logout);
 
     refreshInbox();
-
-    // Auto-refresh every 30 seconds
-    setInterval(refreshInbox, 30000);
 });
 
 // Sample data for testing when API is not available
