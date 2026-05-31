@@ -1,5 +1,5 @@
 {
-  "name": "demo",
+  "name": "yopmail-test",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -11,9 +11,10 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "cors": "^2.8.6",
-    "dotenv": "^17.4.2",
+    "@babel/preset-env": "^7.29.7",
+    "@babel/register": "^7.29.7",
+    "easy-yopmail": "^5.2.2",
     "express": "^5.2.1",
-    "mongoose": "^9.6.2"
+    "guerrillamail-api": "^1.2.2"
   }
 }
