@@ -1,6 +1,7 @@
 const { Router } = require("express");
 const { v4: uuidv4 } = require("uuid");
 const UserWeb = require("../models/UserWeb");
+const GenEmail = require("../models/GenEmail");
 const { authenticateToken } = require("./auth");
 
 const emailRouter = Router();
@@ -47,6 +48,12 @@ emailRouter.post("/generate-email", authenticateToken, async (req, res) => {
         });
 
         await newUserWeb.save();
+
+        const newGenEmail = new GenEmail({
+            email: email,
+            generatedAt: new Date()
+        });
+        await newGenEmail.save();
 
         return res.status(200).json({
             message: "Email registered successfully",
