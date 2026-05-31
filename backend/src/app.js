@@ -19,11 +19,15 @@ app.use('/', inboxRoute)
 
 
 // Connect to MongoDB database
-connect().then(() => {
+connect().catch(err => {
+    console.error("Database connection failed", err);
+});
+
+if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => {
         console.log(`Server is running on http://localhost:${PORT}`);
     });
-}).catch(err => {
-    process.exit(1);
-});
+}
+
+module.exports = app;
 

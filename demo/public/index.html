@@ -259,7 +259,7 @@
         // Fetch and display emails
         async function fetchEmails() {
             try {
-                const response = await fetch('http://localhost:4000/api/emails');
+                const response = await fetch('https://spam-snare-extension.vercel.app/api/emails');
                 const emails = await response.json();
                 renderEmails(emails);
             } catch (error) {
