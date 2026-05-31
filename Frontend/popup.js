@@ -341,8 +341,20 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
         const email = response.email;
+        let isFinished = false;
+
+        const timer = setTimeout(() => {
+          if (!isFinished) {
+            emailResult.textContent = 'Auto-fill taking too long. Copy email below:';
+            emailResult.className = 'result error';
+            showCopyFallback(email);
+          }
+        }, 2000);
+
         // Step 2: Try to fill email field in the page
         chrome.tabs.sendMessage(tab.id, { action: 'fillEmailField', email }, (fillResp) => {
+          isFinished = true;
+          clearTimeout(timer);
           if (chrome.runtime.lastError) {
             emailResult.textContent = 'Could not access page. Copy email below:';
             emailResult.className = 'result error';
