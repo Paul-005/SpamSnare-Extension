@@ -42,18 +42,51 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  if (request.action === 'checkSiteFlagged') {
+    let website;
+    try {
+      const parsedURL = new URL(request.url);
+      website = parsedURL.origin;
+    } catch (e) {
+      sendResponse({ error: 'Invalid URL provided.' });
+      return;
+    }
+
+    fetch('http://localhost:3000/check-flagged', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ website })
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.error) {
+          sendResponse({ error: data.error });
+        } else {
+          sendResponse({ flagged: data.flagged, message: data.message });
+        }
+      })
+      .catch(error => {
+        console.error('Error checking flagged status:', error);
+        sendResponse({ error: 'Failed to check if site is flagged.' });
+      });
+
+    return true;
+  }
+
   if (request.action === 'generateEmail') {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       const currentTab = tabs[0];
       if (currentTab && currentTab.url) {
         const url = currentTab.url;
-        
+
         chrome.storage.local.get(['spamsnare_token'], (result) => {
           if (!result.spamsnare_token) {
             sendResponse({ error: 'User not logged in' });
             return;
           }
-          
+
           fetch('http://localhost:3000/generate-email', {
             method: 'POST',
             headers: {

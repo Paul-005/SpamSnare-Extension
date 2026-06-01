@@ -473,3 +473,117 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 });
+
+// Automatically check if the site is flagged
+async function autoCheckFlagged() {
+  const currentUrl = window.location.href;
+  chrome.runtime.sendMessage({ action: 'checkSiteFlagged', url: currentUrl }, (response) => {
+    if (chrome.runtime.lastError) {
+      // Ignore errors when extension context is invalidated or background not ready
+      return;
+    }
+    if (response && response.flagged) {
+      showFlaggedPopup(response.message || 'This website has been flagged as potential spam!');
+    }
+  });
+}
+
+// Function to show a nice popup UI
+function showFlaggedPopup(message) {
+  // Check if popup already exists
+  if (document.getElementById('spamsnare-flagged-popup')) return;
+
+  const popup = document.createElement('div');
+  popup.id = 'spamsnare-flagged-popup';
+
+  // Apply styles directly
+  Object.assign(popup.style, {
+    position: 'fixed',
+    top: '20px',
+    right: '20px',
+    backgroundColor: '#ff4d4f', // Red background for warning
+    color: '#ffffff',
+    padding: '16px 24px',
+    borderRadius: '12px',
+    boxShadow: '0 8px 24px rgba(255, 77, 79, 0.3)',
+    zIndex: '9999999',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+    animation: 'slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+    backdropFilter: 'blur(8px)',
+    border: '1px solid rgba(255, 255, 255, 0.2)'
+  });
+
+  // Include SVG icon
+  const icon = document.createElement('div');
+  icon.innerHTML = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22ZM12 7C12.5523 7 13 7.44772 13 8V13C13 13.5523 12.5523 14 12 14C11.4477 14 11 13.5523 11 13V8C11 7.44772 11.4477 7 12 7ZM12 18C12.8284 18 13.5 17.3284 13.5 16.5C13.5 15.6716 12.8284 15 12 15C11.1716 15 10.5 15.6716 10.5 16.5C10.5 17.3284 11.1716 18 12 18Z" fill="currentColor"/>
+  </svg>`;
+  icon.style.display = 'flex';
+  icon.style.alignItems = 'center';
+
+  const textContainer = document.createElement('div');
+  const title = document.createElement('strong');
+  title.textContent = 'Warning: Website Is Flagged';
+  title.style.display = 'block';
+  title.style.fontSize = '16px';
+  title.style.fontWeight = '600';
+  title.style.marginBottom = '4px';
+
+  const desc = document.createElement('div');
+  desc.textContent = message;
+  desc.style.fontSize = '14px';
+  desc.style.opacity = '0.9';
+  desc.style.lineHeight = '1.4';
+
+  textContainer.appendChild(title);
+  textContainer.appendChild(desc);
+
+  const closeBtn = document.createElement('button');
+  closeBtn.innerHTML = '×';
+  Object.assign(closeBtn.style, {
+    background: 'none',
+    border: 'none',
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: '28px',
+    cursor: 'pointer',
+    padding: '0 0 0 8px',
+    marginLeft: 'auto',
+    lineHeight: '1',
+    transition: 'color 0.2s'
+  });
+  closeBtn.onmouseenter = () => closeBtn.style.color = '#fff';
+  closeBtn.onmouseleave = () => closeBtn.style.color = 'rgba(255, 255, 255, 0.7)';
+  closeBtn.onclick = () => {
+    popup.style.animation = 'slideOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards';
+    setTimeout(() => popup.remove(), 300);
+  };
+
+  popup.appendChild(icon);
+  popup.appendChild(textContainer);
+  popup.appendChild(closeBtn);
+
+  // Add keyframes for animation if not present
+  if (!document.getElementById('spamsnare-styles')) {
+    const style = document.createElement('style');
+    style.id = 'spamsnare-styles';
+    style.textContent = `
+      @keyframes slideIn {
+        from { transform: translateX(120%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+      @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(120%); opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  document.body.appendChild(popup);
+}
+
+// Run the check when script loads
+autoCheckFlagged();

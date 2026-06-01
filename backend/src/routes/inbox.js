@@ -36,13 +36,14 @@ inboxRoute.post('/check-inbox', authenticateToken, async (req, res) => {
         if (inbox.length > 0 && website) {
             const websiteLower = website.toLowerCase();
             for (const mail of inbox) {
-                // Extract the part just before the last dot from the website
-                const websiteParts = websiteLower.split('.');
-                let keyword = '';
-                if (websiteParts.length > 1) {
-                    keyword = websiteParts[websiteParts.length - 2];
+                // Better extraction of the main domain name as the keyword
+                let keyword = websiteLower;
+                const match = websiteLower.match(/^(?:https?:\/\/)?(?:[^@\/\n]+@)?(?:www\.)?(?:[\w-]+\.)*?([\w-]+\.(?:com|org|net|edu|gov|co\.uk|co\.in|in|au|io|dev|me|to|info|biz|xyz|cc|us|ca|tv|news|app|ai))/i);
+                if (match && match[1]) {
+                    keyword = match[1].split('.')[0];
                 } else {
-                    keyword = websiteLower;
+                    const cleanWeb = websiteLower.replace(/^(?:https?:\/\/)?(?:www\.)?/i, '').split('/')[0];
+                    keyword = cleanWeb.split('.')[0];
                 }
                 if (
                     typeof mail.headerfrom === 'string' &&
@@ -104,7 +105,7 @@ inboxRoute.get('/all-inbox', authenticateToken, async (req, res) => {
     try {
         const userId = req.user.userId;
         const userWebs = await UserWeb.find({ userId });
-        
+
         if (!userWebs.length) {
             return res.json({ mails: [] });
         }
@@ -116,7 +117,7 @@ inboxRoute.get('/all-inbox', authenticateToken, async (req, res) => {
                 query: `query Example { inbox(mailbox:"${email}") { id headerfrom subject } }`
             };
             try {
-                 const response = await axios.post(url, data, {
+                const response = await axios.post(url, data, {
                     headers: { 'Content-Type': 'application/json' }
                 });
                 const inbox = response.data?.data?.inbox || [];
@@ -151,7 +152,7 @@ inboxRoute.post('/check-flagged', async (req, res) => {
         return res.status(400).json({ error: 'Missing website parameter.' });
     }
 
-    const match = website.match(/^(?:https?:\/\/)?(?:[^@\/\n]+@)?(?:www\.)?(?:[\w-]+\.)*?([\w-]+\.(?:com|org|net|edu|gov|co\.uk|co\.in|in|au|io|dev|me|info|biz|xyz|cc|us|ca|tv|news|app|ai))/i);
+    const match = website.match(/^(?:https?:\/\/)?(?:[^@\/\n]+@)?(?:www\.)?(?:[\w-]+\.)*?([\w-]+\.(?:com|org|net|edu|gov|co\.uk|co\.in|in|au|io|dev|me|to|info|biz|xyz|cc|us|ca|tv|news|app|ai))/i);
 
     const domain = match[1];
     console.log("Main domain:", domain);
@@ -161,7 +162,7 @@ inboxRoute.post('/check-flagged', async (req, res) => {
         if (!flaggedSite) {
             return res.status(200).json({ flagged: false, message: 'Site is not flagged.' });
         } else {
-            return res.status(200).json({ flagged: true, message: 'Site is flagged.' });
+            return res.status(200).json({ flagged: true, message: 'This site has been flagged by SpamSnare since data leak detected.' });
         }
     } catch (dbErr) {
         console.error('Database select error:', dbErr.message);
