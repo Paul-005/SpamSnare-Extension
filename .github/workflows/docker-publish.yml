@@ -2,7 +2,7 @@ name: Build and Push Docker Image
 
 on:
   push:
-    branches: [ "test" ]
+    branches: [ "master" ]
     # You can naturally add other branches or tags here
   workflow_dispatch: # Allows manual triggering
 
