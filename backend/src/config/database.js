@@ -1,7 +1,13 @@
 const mongoose = require('mongoose');
+const dns = require('dns');
 
 const connect = async () => {
     try {
+        // Set public DNS only on Windows to resolve mongodb+srv SRV records properly
+        if (process.platform === 'win32') {
+            dns.setServers(['8.8.8.8', '8.8.4.4']);
+        }
+
         const mongoUri = process.env.MONGODB_URI;
         if (!mongoUri) {
             throw new Error('MONGODB_URI environment variable is not set');
