@@ -1,6 +1,6 @@
 const axios = require('axios');
-const FlaggedSite = require('../models/FlaggedSite');
 const path = require('path');
+const { prisma } = require('../config/database');
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
 const verifyFlaggedEmail = async (email, website) => {
@@ -81,36 +81,47 @@ Respond ONLY with "LEAK" or "USER_ACTIVITY".
         const geminiResponse = await axios.post(geminiUrl, geminiBody);
         const resultText = geminiResponse.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
 
-
         if (resultText === 'LEAK') {
             console.log(`[Verifier] ${website} is a leak for ${website}`);
             try {
-                const existingFlaggedSite = await FlaggedSite.findOne({ website_address: website });
+                const existingFlaggedSite = await prisma.flaggedSite.findUnique({
+                    where: { websiteAddress: website }
+                });
                 if (!existingFlaggedSite) {
-                    const newFlaggedSite = new FlaggedSite({
-                        website_address: website,
-                        flags: 1,
-                        email: email
+                    await prisma.flaggedSite.create({
+                        data: {
+                            websiteAddress: website,
+                            flags: 1,
+                            email: email
+                        }
                     });
-                    await newFlaggedSite.save();
                 } else {
-                    await FlaggedSite.updateOne({ website_address: website }, { $inc: { flags: 1 } });
+                    await prisma.flaggedSite.update({
+                        where: { websiteAddress: website },
+                        data: { flags: { increment: 1 } }
+                    });
                 }
 
                 // Hard code for demo
                 if (website === 'teachable.com') {
                     console.log(`[Verifier] codewithmosh.com is a leak for codewithmosh.com (Demo hardcode)`);
                     const demoSite = 'codewithmosh.com';
-                    const existingDemoSite = await FlaggedSite.findOne({ website_address: demoSite });
+                    const existingDemoSite = await prisma.flaggedSite.findUnique({
+                        where: { websiteAddress: demoSite }
+                    });
                     if (!existingDemoSite) {
-                        const newFlaggedDemo = new FlaggedSite({
-                            website_address: demoSite,
-                            flags: 1,
-                            email: email
+                        await prisma.flaggedSite.create({
+                            data: {
+                                websiteAddress: demoSite,
+                                flags: 1,
+                                email: email
+                            }
                         });
-                        await newFlaggedDemo.save();
                     } else {
-                        await FlaggedSite.updateOne({ website_address: demoSite }, { $inc: { flags: 1 } });
+                        await prisma.flaggedSite.update({
+                            where: { websiteAddress: demoSite },
+                            data: { flags: { increment: 1 } }
+                        });
                     }
                 }
             } catch (dbErr) {

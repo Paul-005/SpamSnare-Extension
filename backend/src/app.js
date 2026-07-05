@@ -12,13 +12,16 @@ const PORT = 3000;
 
 app.use(cors({ origin: "*" }))
 app.use(express.json());
+
 app.use("/", authRouter)
 app.use("/", emailRouter)
 app.use('/', inboxRoute)
 
+app.get('/', (req, res) => {
+    res.send("Server is running");
+})
 
-
-// Connect to MongoDB database
+// Connect to PostgreSQL database
 connect().catch(err => {
     console.error("Database connection failed", err);
 });
