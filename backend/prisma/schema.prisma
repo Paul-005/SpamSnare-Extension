@@ -1,0 +1,61 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relationships
+  userWebs  UserWeb[]
+
+  @@map("users")
+}
+
+model UserWeb {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  website   String
+  email     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Constraints
+  @@unique([userId, website])
+  @@map("user_web")
+}
+
+model GenEmail {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  generatedAt DateTime @default(now()) @map("generated_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("gen_emails")
+}
+
+model FlaggedSite {
+  id             String   @id @default(uuid())
+  websiteAddress String   @unique @map("website_address")
+  flags          Int      @default(0)
+  email          String
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("flagged_site")
+}

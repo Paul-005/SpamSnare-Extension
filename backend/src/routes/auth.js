@@ -1,6 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const bcrypt = require('bcrypt');
+const { prisma } = require('../config/database');
 require('dotenv').config();
 
 const authRouter = express.Router();
@@ -9,6 +10,9 @@ const authRouter = express.Router();
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
 };
+
+// Email format regex validation
+const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
 
 // Register
 authRouter.post('/register', async (req, res) => {
@@ -28,26 +32,46 @@ authRouter.post('/register', async (req, res) => {
       });
     }
 
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        message: 'Please enter a valid email'
+      });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await prisma.user.findUnique({
+      where: { email: normalizedEmail }
+    });
+
     if (existingUser) {
       return res.status(400).json({
         message: 'User with this email already exists'
       });
     }
 
-    // Create new user
-    const newUser = new User({ name, email, password });
-    await newUser.save();
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create new user in PostgreSQL
+    const newUser = await prisma.user.create({
+      data: {
+        name: name.trim(),
+        email: normalizedEmail,
+        password: hashedPassword
+      }
+    });
 
     // Generate token
-    const token = generateToken(newUser._id);
+    const token = generateToken(newUser.id);
 
     res.status(201).json({
       message: 'User registered successfully',
       token,
       user: {
-        id: newUser._id,
+        id: newUser.id,
         name: newUser.name,
         email: newUser.email
       }
@@ -56,17 +80,9 @@ authRouter.post('/register', async (req, res) => {
   } catch (err) {
     console.error('Registration error:', err);
 
-    if (err.code === 11000) {
+    if (err.code === 'P2002') {
       return res.status(400).json({
         message: 'User with this email already exists'
-      });
-    }
-
-    if (err.name === 'ValidationError') {
-      const errors = Object.values(err.errors).map(e => e.message);
-      return res.status(400).json({
-        message: 'Validation error',
-        errors
       });
     }
 
@@ -89,8 +105,13 @@ authRouter.post('/login', async (req, res) => {
       });
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
+
     // Find user by email
-    const user = await User.findOne({ email });
+    const user = await prisma.user.findUnique({
+      where: { email: normalizedEmail }
+    });
+
     if (!user) {
       return res.status(401).json({
         message: 'Invalid email or password'
@@ -98,7 +119,7 @@ authRouter.post('/login', async (req, res) => {
     }
 
     // Check password
-    const isPasswordValid = await user.comparePassword(password);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({
         message: 'Invalid email or password'
@@ -106,13 +127,13 @@ authRouter.post('/login', async (req, res) => {
     }
 
     // Generate token
-    const token = generateToken(user._id);
+    const token = generateToken(user.id);
 
     res.json({
       message: 'Login successful',
       token,
       user: {
-        id: user._id,
+        id: user.id,
         name: user.name,
         email: user.email
       }
@@ -130,14 +151,17 @@ authRouter.post('/login', async (req, res) => {
 // Get current user (protected route)
 authRouter.get('/me', authenticateToken, async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId);
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId }
+    });
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
     res.json({
       user: {
-        id: user._id,
+        id: user.id,
         name: user.name,
         email: user.email
       }

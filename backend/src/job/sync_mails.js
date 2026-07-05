@@ -1,12 +1,7 @@
 const axios = require('axios');
 const path = require('path');
+const { connect, prisma } = require('../config/database');
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
-const { connect, mongoose } = require('../config/database');
-const User = require('../models/User');
-const UserWeb = require('../models/UserWeb');
-const FlaggedSite = require('../models/FlaggedSite');
-
-
 
 const syncMails = async () => {
     try {
@@ -16,12 +11,15 @@ const syncMails = async () => {
         await connect();
 
         // Fetch all users
+        const users = await prisma.user.findMany();
 
         for (const user of users) {
-            console.log(`\nProcessing user: ${user.email} (ID: ${user._id})`);
+            console.log(`\nProcessing user: ${user.email} (ID: ${user.id})`);
 
             // Find all UserWeb entries for this user
-            const userWebs = await UserWeb.find({ userId: user._id });
+            const userWebs = await prisma.userWeb.findMany({
+                where: { userId: user.id }
+            });
 
             for (const userWeb of userWebs) {
                 const email = userWeb.email.split('@')[0];
@@ -56,7 +54,7 @@ const syncMails = async () => {
                                     }
                                 });
 
-                                const message = response.data?.data?.message || [];
+                                const message = response.data?.data?.message || {};
 
                                 let flag = 0;
                                 const websiteLower = userWeb.website.toLowerCase().split('.');
@@ -64,7 +62,7 @@ const syncMails = async () => {
                                 if (websiteLower.length > 1) {
                                     keyword = websiteLower[websiteLower.length - 2];
                                 } else {
-                                    keyword = websiteLower;
+                                    keyword = websiteLower[0];
                                 }
                                 if (
                                     typeof message.headerfrom === 'string' &&
@@ -74,20 +72,25 @@ const syncMails = async () => {
                                 }
 
                                 if (flag > 0) {
-
                                     try {
-                                        const existingFlaggedSite = await FlaggedSite.findOne({ website_address: userWeb.website });
+                                        const existingFlaggedSite = await prisma.flaggedSite.findUnique({
+                                            where: { websiteAddress: userWeb.website }
+                                        });
                                         if (!existingFlaggedSite) {
                                             // If site is not flagged, create a new entry
-                                            const newFlaggedSite = new FlaggedSite({
-                                                website_address: userWeb.website,
-                                                flags: flag,
-                                                email: email
+                                            await prisma.flaggedSite.create({
+                                                data: {
+                                                    websiteAddress: userWeb.website,
+                                                    flags: flag,
+                                                    email: email
+                                                }
                                             });
-                                            await newFlaggedSite.save();
                                         } else {
                                             // If site is already flagged, increment the flag count
-                                            await FlaggedSite.updateOne({ website_address: userWeb.website }, { $inc: { flags: 1 } });
+                                            await prisma.flaggedSite.update({
+                                                where: { websiteAddress: userWeb.website },
+                                                data: { flags: { increment: 1 } }
+                                            });
                                         }
                                     } catch (dbErr) {
                                         console.error('Database error:', dbErr.message);
@@ -96,7 +99,6 @@ const syncMails = async () => {
 
                             } catch (error) {
                                 console.error('Error fetching specific email from Maildrop.cc:', error.message);
-
                             }
                         }
                     }
@@ -112,7 +114,7 @@ const syncMails = async () => {
 
         // Fetch and log mails for Flagged Sites
         console.log('\nFetching mails for Flagged Sites...');
-        const flaggedSites = await FlaggedSite.find({});
+        const flaggedSites = await prisma.flaggedSite.findMany();
 
         for (const site of flaggedSites) {
             const email = site.email;
@@ -167,15 +169,13 @@ const syncMails = async () => {
         }
 
         console.log('\nSync completed.');
-        await mongoose.disconnect();
+        await prisma.$disconnect();
 
     } catch (error) {
         console.error('Error in syncMails:', error);
         process.exit(1);
     }
 };
-
-
 
 // Run the function
 syncMails();

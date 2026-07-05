@@ -1,7 +1,6 @@
 const { Router } = require("express");
 const { v4: uuidv4 } = require("uuid");
-const UserWeb = require("../models/UserWeb");
-const GenEmail = require("../models/GenEmail");
+const { prisma } = require("../config/database");
 const { authenticateToken } = require("./auth");
 
 const emailRouter = Router();
@@ -23,8 +22,15 @@ emailRouter.post("/generate-email", authenticateToken, async (req, res) => {
     const domain = match[1];
 
     try {
-        // Check if domain already exists for this user
-        const existing = await UserWeb.findOne({ website: domain, userId: userId });
+        // Check if domain already exists for this user using compound unique index
+        const existing = await prisma.userWeb.findUnique({
+            where: {
+                userId_website: {
+                    userId: userId,
+                    website: domain
+                }
+            }
+        });
 
         if (existing) {
             // ✅ Already registered
@@ -41,26 +47,27 @@ emailRouter.post("/generate-email", authenticateToken, async (req, res) => {
         const uuid = uuidv4();
         const email = `${uuid}@maildrop.cc`;
 
-        const newUserWeb = new UserWeb({
-            userId: userId,
-            website: domain,
-            email: email
+        await prisma.userWeb.create({
+            data: {
+                userId: userId,
+                website: domain,
+                email: email
+            }
         });
 
-        await newUserWeb.save();
-
-        const newGenEmail = new GenEmail({
-            email: email,
-            generatedAt: new Date()
+        await prisma.genEmail.create({
+            data: {
+                email: email,
+                generatedAt: new Date()
+            }
         });
-        await newGenEmail.save();
 
         return res.status(200).json({
             message: "Email registered successfully",
             payload: { email, website: domain },
         });
     } catch (err) {
-        console.error("[MongoDB] Error:", err.message);
+        console.error("[PostgreSQL] Error:", err.message);
         return res.status(500).json({
             error: "Internal server error",
             details: err.message,
@@ -72,9 +79,12 @@ emailRouter.get("/get-emails", authenticateToken, async (req, res) => {
     const userId = req.user.userId; // Get user ID from JWT token
 
     try {
-        const result = await UserWeb.find({ userId: userId }).lean();
+        const result = await prisma.userWeb.findMany({
+            where: { userId: userId }
+        });
+
         if (result.length > 0) {
-            // Convert MongoDB documents to response format
+            // Convert documents to response format
             const formattedResult = result.map(doc => ({
                 userId: doc.userId,
                 website: doc.website,
@@ -86,14 +96,12 @@ emailRouter.get("/get-emails", authenticateToken, async (req, res) => {
             res.status(200).json({ data: [] });
         }
     } catch (err) {
-        console.error("[MongoDB] Error:", err.message);
+        console.error("[PostgreSQL] Error:", err.message);
         res.status(500).json({
             error: "Internal server error",
             details: err.message,
         });
     }
 });
-
-
 
 module.exports = emailRouter;
