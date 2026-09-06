@@ -4,18 +4,18 @@ SpamSnare is a Chrome extension designed to help users identify and prevent spam
 
 ## Project Structure
 
-- `backend/`: Node.js server with Express and MongoDB.
+- `backend/`: Node.js server with Express, PostgreSQL, and Prisma ORM.
 - `Frontend/`: Chrome Extension.
 
 ---
 
 ## 🚀 Backend Setup
 
-The backend handles user authentication, email generation tracking, and automated email verification using Gemini AI.
+The backend handles user authentication, email generation tracking, health monitoring, and automated email verification using Gemini AI.
 
 ### Prerequisites
 - Node.js (v14+)
-- MongoDB (Local or Atlas)
+- PostgreSQL Database
 - Google Gemini API Key
 
 ### Installation
@@ -28,14 +28,18 @@ The backend handles user authentication, email generation tracking, and automate
    ```bash
    npm install
    ```
+3. Run Prisma migrations / generate client:
+   ```bash
+   npx prisma migrate dev
+   ```
 
 ### 🔑 Environment Variables
 
 Create a `.env` file in the `backend/` directory and add the following:
 
 ```env
-# MongoDB Connection String
-MONGODB_URI=your_mongodb_uri
+# PostgreSQL Connection String
+DATABASE_URL=postgresql://user:password@localhost:5432/spamsnare?schema=public
 
 # JWT Secret for Authentication
 JWT_SECRET=your_jwt_secret
@@ -51,6 +55,10 @@ npm start
 ```
 The server will be running on `http://localhost:3000`.
 
+### 🩺 Health Check
+Check backend status at:
+`GET http://localhost:3000/api/health`
+
 ---
 
 ## 🐳 Docker Deployment
@@ -65,7 +73,7 @@ You can run the backend container using the following command (replace with your
 
 ```bash
 docker run -p 3000:3000 \
-  -e MONGODB_URI="your_mongodb_uri" \
+  -e DATABASE_URL="postgresql://user:password@host:5432/spamsnare" \
   -e GEMINI_API_KEY="your_gemini_api_key" \
   -e JWT_SECRET="your_jwt_secret" \
   paulbchv/spamsnare
@@ -83,7 +91,7 @@ This will automatically load environment variables from the `backend/.env` file.
 
 ## 🧩 Chrome Extension (Frontend) Setup
 
-The frontend is a Chrome extension that interacts with the backend to generate emails and show flagged sites.
+The frontend is a Chrome extension designed following Apple Human Interface Guidelines that interacts with the backend to generate emails and show flagged sites.
 
 ### Development Installation
 
@@ -99,4 +107,5 @@ The frontend is a Chrome extension that interacts with the backend to generate e
 - **Leak Detection**: Automated verification of whether a site has leaked your email using AI.
 
 ---
+
 
